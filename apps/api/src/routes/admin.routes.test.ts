@@ -139,6 +139,41 @@ describe('admin routes', () => {
     expect(snapshot.body.data?.email).toBe('archive@example.com');
   }, 15000);
 
+  it('allows admin to delete a user account and blocks self-delete', async () => {
+    const { createApp } = await import('../app');
+    const app = createApp();
+    const { agent, csrfToken } = await loginAsAdmin(app);
+
+    const passwordHash = await bcrypt.hash('Secret123', 12);
+    const doomed = await createUser({
+      name: 'Delete Target',
+      email: 'delete-me@example.com',
+      passwordHash,
+      role: USER_ROLES.USER,
+      approvalStatus: APPROVAL_STATUS.APPROVED,
+      approvedAt: new Date().toISOString(),
+      approvedByEmail: 'admin@financieramente.local',
+    });
+
+    const deleted = await agent
+      .delete(`/api/admin/users/${doomed.id}`)
+      .set('X-CSRF-Token', csrfToken);
+    expect(deleted.status).toBe(200);
+    expect(deleted.body.data?.deleted).toBe(true);
+
+    const missing = await agent.get(`/api/admin/users/${doomed.id}/snapshot`);
+    expect(missing.status).toBe(404);
+
+    const session = await agent.get('/api/session');
+    const adminId = String(session.body.data?.id ?? '');
+    expect(adminId.length).toBeGreaterThan(0);
+
+    const selfDelete = await agent
+      .delete(`/api/admin/users/${adminId}`)
+      .set('X-CSRF-Token', csrfToken);
+    expect(selfDelete.status).toBe(400);
+  }, 15000);
+
   it('denies analyst from analytics users endpoint', async () => {
     const { createApp } = await import('../app');
     const app = createApp();

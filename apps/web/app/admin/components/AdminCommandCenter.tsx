@@ -2,6 +2,7 @@
 
 import {
   approveAdminUser,
+  deleteAdminUser,
   fetchAdminArchiveUsers,
   fetchAdminAuditLog,
   fetchAdminCockpitSnapshot,
@@ -417,6 +418,31 @@ export default function AdminCommandCenter() {
     }
   }, [loadOps]);
 
+  const handleDeleteUser = useCallback(async (user: AnalyticsUser) => {
+    const label = formatAdminAnonymousId(user.id);
+    const confirmed = window.confirm(
+      `¿Eliminar permanentemente la cuenta ${label}?\n\nSe borrarán sesiones, documentos, perfiles, memoria y datos asociados. Esta acción no se puede deshacer.`,
+    );
+    if (!confirmed) return;
+
+    setPendingActionId(user.id);
+    setError(null);
+    try {
+      await deleteAdminUser(user.id);
+      if (selectedUserId === user.id) {
+        setSelectedUserId('');
+        setSelectedUserDetail(null);
+        setSelectedUserInteractions([]);
+        setUserDossier(null);
+      }
+      await loadUsers();
+    } catch (err) {
+      setError(toUserFacingError(err));
+    } finally {
+      setPendingActionId('');
+    }
+  }, [loadUsers, selectedUserId]);
+
   const handleExportArchiveJson = useCallback(async () => {
     setError(null);
     try {
@@ -728,10 +754,14 @@ export default function AdminCommandCenter() {
                           <th>Interacc.</th>
                           <th>Fincoin</th>
                           <th>Actividad</th>
+                          <th aria-label="Acciones" />
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((user) => (
+                        {users.map((user) => {
+                          const isSelf = Boolean(sessionInfo?.id && sessionInfo.id === user.id);
+                          const deleteDisabled = pendingActionId === user.id || isSelf;
+                          return (
                           <tr
                             key={user.id}
                             className={selectedUserId === user.id ? 'is-selected' : ''}
@@ -748,8 +778,23 @@ export default function AdminCommandCenter() {
                             <td>{formatAdminNumber(user.interactionsCount)}</td>
                             <td>{user.fincoinDepleted ? 'Agotado' : formatAdminUsd(user.fincoinRemainingUsd)}</td>
                             <td>{formatAdminDateTime(user.lastActivityAt)}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="admin-btn admin-btn--danger admin-btn--compact"
+                                disabled={deleteDisabled}
+                                title={isSelf ? 'No puedes eliminar tu propia cuenta' : 'Eliminar cuenta'}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleDeleteUser(user);
+                                }}
+                              >
+                                {pendingActionId === user.id ? '…' : 'Eliminar'}
+                              </button>
+                            </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

@@ -317,6 +317,10 @@ export async function updateAdminUserRole(
   });
 }
 
+export async function deleteAdminUser(userId: string): Promise<{ deleted: true; userId: string; email: string }> {
+  return adminFetch(`/api/admin/users/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+}
+
 export async function fetchAdminAuditLog(params?: {
   limit?: number;
   offset?: number;

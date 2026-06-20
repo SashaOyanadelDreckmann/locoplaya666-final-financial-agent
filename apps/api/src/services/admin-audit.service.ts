@@ -7,6 +7,7 @@ export const ADMIN_AUDIT_ACTIONS = {
   USER_APPROVE: 'user.approve',
   USER_REJECT: 'user.reject',
   USER_ROLE_CHANGE: 'user.role_change',
+  USER_DELETE: 'user.delete',
   DOSSIER_VIEW: 'dossier.view',
   ARCHIVE_USER_VIEW: 'archive.user_view',
   ARCHIVE_EXPORT: 'archive.export',

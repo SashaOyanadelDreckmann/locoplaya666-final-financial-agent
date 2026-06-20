@@ -20,6 +20,7 @@ import {
   logAdminAudit,
 } from '../services/admin-audit.service';
 import { approveUserByAdmin, rejectUserByAdmin } from '../services/approval.service';
+import { deleteUserByAdmin } from '../services/admin-user-delete.service';
 import { loadUserById, updateUserAuthSecurity } from '../services/user.service';
 
 const router = Router();
@@ -221,6 +222,28 @@ router.patch(
         role: updated.role,
       },
     });
+  }),
+);
+
+router.delete(
+  '/users/:userId',
+  requireAuth,
+  requireAdminRole,
+  asyncHandler(async (req, res) => {
+    const { userId } = parseParams(UserParamsSchema, req.params);
+    const actor = actorFromRequest(req);
+    const result = await deleteUserByAdmin({
+      actorId: actor.id,
+      userId,
+    });
+    logAdminAudit({
+      actorId: actor.id,
+      actorEmail: actor.email,
+      action: ADMIN_AUDIT_ACTIONS.USER_DELETE,
+      targetUserId: userId,
+      meta: { email: result.email },
+    });
+    return sendSuccess(res, result);
   }),
 );
 

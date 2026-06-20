@@ -27,6 +27,7 @@ function auditActionLabel(action: string): string {
     'user.approve': 'Aprobación',
     'user.reject': 'Rechazo',
     'user.role_change': 'Cambio de rol',
+    'user.delete': 'Eliminación',
     'dossier.view': 'Dossier',
     'archive.user_view': 'Archivo',
     'archive.export': 'Export JSON',
