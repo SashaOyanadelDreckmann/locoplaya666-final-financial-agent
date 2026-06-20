@@ -133,7 +133,7 @@ const VISION_ANALYSIS_SCHEMA = {
           currency: { type: 'string' },
           context: { type: 'string' },
         },
-        required: ['label', 'value'],
+        required: ['label', 'value', 'currency', 'context'],
       },
     },
     dates: { type: 'array', items: { type: 'string' } },
@@ -149,7 +149,7 @@ const VISION_ANALYSIS_SCHEMA = {
           result: { type: 'number' },
           note: { type: 'string' },
         },
-        required: ['label', 'expression', 'result'],
+        required: ['label', 'expression', 'result', 'note'],
       },
     },
     observations: { type: 'array', items: { type: 'string' } },
@@ -173,6 +173,9 @@ const VISION_ANALYSIS_SCHEMA = {
 } as const;
 
 const TEXT_ANALYSIS_SCHEMA = VISION_ANALYSIS_SCHEMA;
+
+/** Exported for strict-schema regression tests (OpenAI response_format). */
+export const CHAT_ATTACHMENT_ANALYSIS_SCHEMA = VISION_ANALYSIS_SCHEMA;
 
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}\n...[truncado]` : text;
@@ -230,6 +233,7 @@ async function analyzeWithVision(params: {
         params.hint ? `Contexto de extracción previa: ${params.hint}` : '',
         'Analiza el archivo con honestidad. Si es una foto personal, paisaje u objeto sin datos financieros, descríbelo y marca relevance_to_finance=none.',
         'Si hay montos, fechas, bancos o comercios visibles, extráelos y calcula totales/netos cuando sea razonable.',
+        'En amounts usa currency="" y context="" cuando no apliquen; en calculations usa note="" si no hay nota.',
         'No inventes movimientos ni montos que no estén visibles.',
       ]
         .filter(Boolean)
@@ -286,7 +290,9 @@ async function analyzeExtractedText(params: {
       'Analiza el contenido extraído de un archivo adjunto al chat financiero. ' +
       'Describe qué es, clasifica relevancia financiera, resume hallazgos y extrae montos/fechas/entidades visibles. ' +
       'Si el contenido no es financiero, marca relevance_to_finance=none y explícalo. ' +
-      'Agrega calculations cuando los números lo permitan sin inventar. Responde en español dentro del JSON.',
+      'Agrega calculations cuando los números lo permitan sin inventar. ' +
+      'En amounts usa currency="" y context="" cuando no apliquen; en calculations usa note="" si no hay nota. ' +
+      'Responde en español dentro del JSON.',
     input: [
       {
         role: 'user',
@@ -312,10 +318,28 @@ function mapAnalysisPayload(
     description: String(payload.description ?? '').trim() || 'Sin descripción disponible.',
     extractedText: String(payload.extracted_text ?? '').trim(),
     keyFindings: Array.isArray(payload.key_findings) ? payload.key_findings.slice(0, 8) : [],
-    amounts: Array.isArray(payload.amounts) ? payload.amounts.slice(0, 24) : [],
+    amounts: Array.isArray(payload.amounts)
+      ? payload.amounts.slice(0, 24).map((item) => ({
+          label: String(item.label ?? 'Monto'),
+          value: Number(item.value) || 0,
+          ...(String(item.currency ?? '').trim()
+            ? { currency: String(item.currency).trim() }
+            : {}),
+          ...(String(item.context ?? '').trim()
+            ? { context: String(item.context).trim() }
+            : {}),
+        }))
+      : [],
     dates: Array.isArray(payload.dates) ? payload.dates.slice(0, 16) : [],
     entities: Array.isArray(payload.entities) ? payload.entities.slice(0, 16) : [],
-    calculations: Array.isArray(payload.calculations) ? payload.calculations.slice(0, 12) : [],
+    calculations: Array.isArray(payload.calculations)
+      ? payload.calculations.slice(0, 12).map((item) => ({
+          label: String(item.label ?? 'Cálculo'),
+          expression: String(item.expression ?? ''),
+          result: Number(item.result) || 0,
+          ...(String(item.note ?? '').trim() ? { note: String(item.note).trim() } : {}),
+        }))
+      : [],
     observations: Array.isArray(payload.observations) ? payload.observations.slice(0, 8) : [],
     limitations: Array.isArray(payload.limitations) ? payload.limitations.slice(0, 6) : [],
     confidence: normalizeConfidence(payload.confidence),
