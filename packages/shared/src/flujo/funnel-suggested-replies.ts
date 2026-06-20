@@ -31,8 +31,8 @@ function clipSuggestion(text: string): string {
   return words.slice(0, MAX_WORDS_PER_CHIP).join(' ');
 }
 
-function normalizeTopic(text: string): string {
-  return normalizeSuggestionKey(text);
+function normalizeTopic(text?: string): string {
+  return normalizeSuggestionKey(String(text ?? ''));
 }
 
 function mergeUniqueSuggestions(candidates: string[], max: number): string[] {
@@ -52,7 +52,7 @@ function mergeUniqueSuggestions(candidates: string[], max: number): string[] {
 }
 
 export function buildTurnContextActionPlanReplies(userMessage?: string): string[] {
-  const text = normalizeTopic(userMessage ?? '');
+  const text = normalizeTopic(userMessage);
   const raw = String(userMessage ?? '');
   const out: string[] = [];
 
@@ -95,7 +95,7 @@ export function buildTurnContextActionPlanReplies(userMessage?: string): string[
 }
 
 export function buildTurnContextSocialConsciousnessReplies(userMessage?: string): string[] {
-  const text = normalizeTopic(userMessage ?? '');
+  const text = normalizeTopic(userMessage);
   const out: string[] = [];
 
   const push = (suggestion: string) => {
