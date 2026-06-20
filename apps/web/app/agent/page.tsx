@@ -110,6 +110,7 @@ import {
   buildProductCardDescriptor,
   buildTransactionIntelligence,
   buildChatClosureSummary,
+  extractClosureMessages,
   firstNameOf,
   dedupeConsecutiveAssistantMessages,
   sanitizeChatThreadMessages,
@@ -642,6 +643,7 @@ export default function AgentPage() {
     (isActiveChatClosed
       ? buildChatClosureSummary({
           chatId: activeChatId as 'chat-1' | 'chat-2' | 'chat-3',
+          messages: extractClosureMessages(items),
           userMessage:
             [...items]
               .reverse()
@@ -1041,7 +1043,7 @@ export default function AgentPage() {
             'kicker' in s.closureSummary &&
             'title' in s.closureSummary &&
             'subtitle' in s.closureSummary &&
-            'sections' in s.closureSummary
+            ('body' in s.closureSummary || 'sections' in s.closureSummary)
               ? (s.closureSummary as ChatClosureSummary)
               : null,
           generalChatStarted: Boolean(s.generalChatStarted ?? false),
@@ -1789,7 +1791,7 @@ export default function AgentPage() {
         prev.map((thread) => {
           const candidate = summaries[thread.id];
           if (!candidate || typeof candidate !== 'object') return thread;
-          if (!('title' in candidate) || !('sections' in candidate)) return thread;
+          if (!('title' in candidate) || (!('body' in candidate) && !('sections' in candidate))) return thread;
           return {
             ...thread,
             closureSummary: candidate as ChatClosureSummary,

@@ -1,6 +1,12 @@
 import React, { memo, useMemo, useState, type ReactNode } from 'react';
 
-import { createInitialAgentStreamUiState, isPublicCitationRenderable } from '@financial-agent/shared';
+import {
+  buildChatClosureSummary,
+  createInitialAgentStreamUiState,
+  extractClosureMessages,
+  isPublicCitationRenderable,
+  type ChatClosureSummary,
+} from '@financial-agent/shared';
 
 import { DocumentBubble } from '@/components/conversacion/DocumentBubble';
 import { CitationBubble, getCitationLabel } from '@/components/conversacion/CitationBubble';
@@ -13,11 +19,9 @@ import { buildBubbleSnapshotHtmlAndCss } from './bubble-chat.snapshot';
 import type { ChatItem } from '@/lib/agente/agent.response.types';
 import type { VisualMode } from '@/lib/interfaz/visual-mode';
 import {
-  buildChatClosureSummary,
   sanitizeMessageText,
   getChat1UxCopy,
   resolveChat1UxState,
-  type ChatClosureSummary,
 } from '../utilidades/page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
@@ -363,6 +367,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
 }) {
   const docModePillStyle = getDocModePillStyle(props.visualMode);
   const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
+  const [savingClosurePdf, setSavingClosurePdf] = useState(false);
   const userTag = String(props.sessionUserName ?? 'USER').trim().split(' ')[0] || 'USER';
   const chat1Ux = resolveChat1UxState({
     chatId: props.activeThreadId,
@@ -437,6 +442,10 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   const streamAccentStyle = streamAccentSource
     ? ({ '--stream-accent': getStreamRailAccentColor(streamAccentSource) } as React.CSSProperties)
     : undefined;
+  const closureMessages = useMemo(
+    () => extractClosureMessages(props.items),
+    [props.items],
+  );
   const effectiveClosingSummary =
     props.closingSummary ??
     (props.compactClosedView && !props.showFullChat
@@ -447,14 +456,15 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
               : props.activeThreadId === 'chat-3'
                 ? 'chat-3'
                 : 'chat-1',
+          messages: closureMessages,
           userMessage:
-            [...itemsToRender]
+            [...props.items]
               .reverse()
               .find((item): item is Extract<ChatItem, { type: 'message'; role: 'user' }> =>
                 item.type === 'message' && item.role === 'user',
               )?.content ?? '',
           assistantMessage:
-            [...itemsToRender]
+            [...props.items]
               .reverse()
               .find((item): item is Extract<ChatItem, { type: 'message'; role: 'assistant' }> =>
                 item.type === 'message' && item.role === 'assistant',
@@ -959,11 +969,94 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         ) : null}
 
         {effectiveClosingSummary && !props.showFullChat ? (
-          <div className="agent-bubble assistant latex-doc is-intro-doc is-empty-welcome is-closure-welcome">
-            <div className="latex-doc-body is-empty-welcome-body">
+          <div className="agent-bubble assistant latex-doc is-closure-welcome">
+            <div className="latex-doc-head">
+              <div className="latex-doc-heading">
+                <span className="latex-doc-kicker">{effectiveClosingSummary.kicker}</span>
+                <span className="latex-doc-title">{effectiveClosingSummary.title}</span>
+                <span className="latex-doc-subtitle">{effectiveClosingSummary.subtitle}</span>
+              </div>
+              <div className="latex-doc-head-actions">
+                <span className="latex-doc-mode" style={docModePillStyle}>
+                  cierre
+                </span>
+                <button
+                  type="button"
+                  className="latex-doc-save-btn"
+                  disabled={savingClosurePdf}
+                  onClick={(e) => {
+                    const btn = e.currentTarget as HTMLButtonElement;
+                    const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
+                    setSavingClosurePdf(true);
+                    void (async () => {
+                      try {
+                        if (!bubbleEl) throw new Error('Bubble not found');
+                        const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl, {
+                          kicker: effectiveClosingSummary.kicker,
+                          title: effectiveClosingSummary.title,
+                          subtitle: effectiveClosingSummary.subtitle,
+                          badge: 'cierre',
+                        });
+                        const result = await saveBubbleSnapshotPdfArtifact({
+                          title: effectiveClosingSummary.title,
+                          subtitle: effectiveClosingSummary.subtitle,
+                          html: snapshot.html,
+                          css: snapshot.css,
+                          pageLayout: 'content',
+                        });
+                        const artifact = result.artifact;
+                        const pdfFilename = `${effectiveClosingSummary.title.replace(/\s+/g, '-').slice(0, 48)}.pdf`;
+                        if (artifact.fileUrl) {
+                          await downloadArtifactFile(artifact.fileUrl, pdfFilename);
+                        }
+                        const reportId = `${artifact.id}-${Date.now()}`;
+                        const report: SavedReport = {
+                          id: reportId,
+                          title: artifact.title,
+                          group: props.classifyReportGroup(artifact.title, artifact.source),
+                          fileUrl: artifact.fileUrl ?? '',
+                          previewImageUrl: artifact.previewImageUrl || undefined,
+                          createdAt: artifact.createdAt,
+                        };
+                        props.setSavedReports((prev) =>
+                          [report, ...prev.filter((r) => r.fileUrl !== report.fileUrl)],
+                        );
+                        const sourceRect = btn.getBoundingClientRect();
+                        props.launchDocToLibraryAnimation(
+                          artifact.title,
+                          sourceRect,
+                          artifact.previewImageUrl ?? artifact.fileUrl ?? '',
+                          reportId,
+                        );
+                      } catch (error) {
+                        const detail =
+                          error instanceof Error && error.message
+                            ? error.message
+                            : 'Error desconocido';
+                        props.setItemsForActive((prev) => [
+                          ...prev,
+                          {
+                            type: 'message',
+                            role: 'assistant',
+                            content: `No pude guardar el PDF de esta burbuja. ${detail}`,
+                            mode: 'information',
+                          } as ChatItem,
+                        ]);
+                      } finally {
+                        setSavingClosurePdf(false);
+                      }
+                    })();
+                  }}
+                >
+                  {savingClosurePdf ? 'Guardando…' : 'Guardar PDF'}
+                </button>
+              </div>
+            </div>
+            <div className="latex-doc-body is-closure-summary-body">
               <ClosureGradientBlobCard
                 className="gradient-blob-card--welcome gradient-blob-card--closure"
                 summary={effectiveClosingSummary}
+                hideMasthead
               />
             </div>
           </div>

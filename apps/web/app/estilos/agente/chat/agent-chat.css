@@ -1416,8 +1416,7 @@
   max-height: min(65vh, 700px);
 }
 
-.agent-bubble.assistant.latex-doc.is-empty-welcome,
-.agent-bubble.assistant.latex-doc.is-closure-welcome {
+.agent-bubble.assistant.latex-doc.is-empty-welcome {
   min-height: clamp(720px, 92vh, 980px);
 }
 
@@ -1427,16 +1426,31 @@
 }
 
 .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-head,
-.agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-head {
-  display: none;
-}
-
 .agent-bubble.assistant.latex-doc.is-chat-intro-shell .latex-doc-head {
   display: none;
 }
 
-.agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body,
-.agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-empty-welcome-body {
+.agent-bubble.assistant.latex-doc.is-closure-welcome {
+  min-height: 0;
+  height: auto;
+}
+
+.agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-closure-summary-body {
+  min-height: 0;
+  max-height: min(65vh, 720px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding: 16px 18px 20px;
+}
+
+.agent-bubble.assistant.latex-doc.is-closure-welcome .gradient-blob-card__closure-markdown {
+  font-size: 0.98rem;
+  line-height: 1.62;
+}
+
+.agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body {
   min-height: clamp(700px, 90vh, 960px);
   max-height: none;
   overflow: visible;

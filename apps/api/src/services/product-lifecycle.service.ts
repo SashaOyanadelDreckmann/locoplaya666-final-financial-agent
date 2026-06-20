@@ -320,6 +320,7 @@ export function lifecycleMeta(
   params?: {
     userMessage?: string;
     assistantMessage?: string;
+    messages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   },
 ) {
   const turns = state.chatTurns[activeChatId] ?? 0;
@@ -360,6 +361,7 @@ export function lifecycleMeta(
         turnsRemaining <= 0
           ? buildChatClosureSummary({
               chatId: activeChatId,
+              messages: params?.messages,
               userMessage: params?.userMessage,
               assistantMessage: params?.assistantMessage,
               turnsRemaining,

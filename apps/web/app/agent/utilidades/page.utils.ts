@@ -8,6 +8,7 @@ import { humanizeDiagnosticText } from '@/lib/diagnostico/texto';
 import type { ChatItem } from '@/lib/agente/agent.response.types';
 import {
   buildChatClosureSummary,
+  extractClosureMessages,
   getClosingModeTurn,
   MAX_CHAT_TURNS_BY_CHAT,
   resolveActionPlanFunnelStage,
@@ -58,7 +59,7 @@ export function resolveActiveSocialConsciousnessStage(params: {
   });
 }
 
-export { buildChatClosureSummary };
+export { buildChatClosureSummary, extractClosureMessages };
 export type { ChatClosureSummary };
 
 export type Chat1UxState = 'baseReading' | 'interviewAvailable' | 'diagnosisCompleted';

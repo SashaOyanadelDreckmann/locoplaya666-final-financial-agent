@@ -1,6 +1,7 @@
 import {
   buildChatClosureSummary,
   computeFincoinUsage,
+  extractClosureMessagesFromTurns,
   FINCOIN_MAX_USD_SPEND,
   FINCOIN_OPERATION_COST_USD,
   type FincoinOperation,
@@ -152,11 +153,13 @@ export async function ensureFincoinDepletionHandled(
     const turns = await listConversationTurns({
       userId,
       chatId,
-      limit: 1,
+      limit: 200,
     });
-    const lastTurn = turns[0];
+    const messages = extractClosureMessagesFromTurns(turns);
+    const lastTurn = turns[turns.length - 1];
     summaries[chatId] = buildChatClosureSummary({
       chatId,
+      messages,
       userMessage: lastTurn?.userMessage,
       assistantMessage: lastTurn?.assistantMessage,
       turnsRemaining: 0,

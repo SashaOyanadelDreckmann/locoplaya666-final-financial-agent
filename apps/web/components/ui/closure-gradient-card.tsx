@@ -2,6 +2,7 @@
 
 import {
   buildClosureCarouselPages,
+  resolveClosureSummaryBody,
   type ChatClosureSummary,
 } from '@financial-agent/shared';
 
@@ -9,16 +10,23 @@ import {
   ExecutiveBlobCarouselShell,
   useExecutiveBlobCarousel,
 } from '@/components/ui/executive-blob-carousel';
+import { renderLatexDocMessage } from '@/app/agent/chat/message-renderer';
 
 type ClosureGradientBlobCardProps = {
   className?: string;
   summary: ChatClosureSummary;
+  hideMasthead?: boolean;
 };
 
-export function ClosureGradientBlobCard({ className, summary }: ClosureGradientBlobCardProps) {
+export function ClosureGradientBlobCard({
+  className,
+  summary,
+  hideMasthead = false,
+}: ClosureGradientBlobCardProps) {
   const pages = buildClosureCarouselPages(summary);
   const { active, transition, handleChange, handlePrev, handleNext } = useExecutiveBlobCarousel(pages);
   const current = pages[active];
+  const body = resolveClosureSummaryBody(summary);
 
   if (!current) return null;
 
@@ -28,27 +36,27 @@ export function ClosureGradientBlobCard({ className, summary }: ClosureGradientB
       pages={pages}
       active={active}
       transition={transition}
-      navAriaLabel="Secciones del resumen de cierre"
+      navAriaLabel="Resumen de cierre"
+      hideNav
+      hideStageChrome
       masthead={
-        <>
-          <p className="gradient-blob-card__masthead-brand">{summary.kicker}</p>
-          <h2 className="gradient-blob-card__masthead-title">{summary.title}</h2>
-          <p className="gradient-blob-card__masthead-dek">{summary.subtitle}</p>
-          <div className="gradient-blob-card__masthead-rule" aria-hidden="true" />
-        </>
+        hideMasthead ? null : (
+          <>
+            <p className="gradient-blob-card__masthead-brand">{summary.kicker}</p>
+            <h2 className="gradient-blob-card__masthead-title">{summary.title}</h2>
+            <p className="gradient-blob-card__masthead-dek">{summary.subtitle}</p>
+            <div className="gradient-blob-card__masthead-rule" aria-hidden="true" />
+          </>
+        )
       }
-      slideLabel={
-        <p className={`gradient-blob-card__slide-label${transition}`}>{current.label}</p>
-      }
+      slideLabel={null}
       onChange={(index) => handleChange(index)}
       onPrev={handlePrev}
       onNext={handleNext}
     >
-      <blockquote
-        className={`gradient-blob-card__body-text gradient-blob-card__body-text--lead${transition}`}
-      >
-        {current.body}
-      </blockquote>
+      <div className="premium-markdown gradient-blob-card__closure-markdown">
+        {renderLatexDocMessage(body)}
+      </div>
       {current.footer ? (
         <p className={`gradient-blob-card__dek-text gradient-blob-card__closing-question${transition}`}>
           {current.footer}
