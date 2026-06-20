@@ -1433,46 +1433,84 @@
 .agent-bubble.assistant.latex-doc.is-closure-welcome {
   min-height: 0;
   height: auto;
+  border-radius: 24px;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-closure-summary-body {
   min-height: 0;
-  max-height: min(65vh, 720px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-  padding: 16px 18px 20px;
+  max-height: min(68vh, 760px);
+  overflow: visible;
+  padding: 0;
+  background: transparent;
 }
 
 .agent-bubble.assistant.latex-doc.is-closure-welcome .gradient-blob-card__closure-markdown {
-  font-size: 0.98rem;
-  line-height: 1.62;
+  font-size: 1rem;
+  line-height: 1.68;
 }
 
 .closure-gradient-card-wrap {
   position: relative;
+  width: 100%;
+}
+
+.closure-gradient-card__frame,
+.closure-gradient-card__glass {
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.closure-gradient-card__editorial {
+  padding-top: clamp(18px, 2.8vw, 24px);
+}
+
+.closure-gradient-card__header-bar {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 0 clamp(12px, 2.4vw, 18px) clamp(14px, 2vw, 18px);
+}
+
+.closure-gradient-card__title {
+  margin: 0;
+  max-width: min(100%, 18ch);
+  padding: 6px clamp(92px, 18vw, 112px) 0;
+  text-align: center;
+  font-family: var(--welcome-font-sans);
+  font-size: clamp(1.18rem, 2.2vw, 1.42rem);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: #1d1d1f;
 }
 
 .closure-gradient-card__save-slot {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 3;
+  top: 0;
+  right: clamp(10px, 2vw, 14px);
+  z-index: 2;
 }
 
 .closure-gradient-card__save-btn {
   position: static;
+  white-space: nowrap;
 }
 
-.gradient-blob-card--closure .gradient-blob-card__masthead-title--closure {
-  max-width: min(100%, 22ch);
-  margin-inline: auto;
-  padding-inline: clamp(52px, 12vw, 72px);
+.closure-gradient-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2.2vw, 22px);
+  padding: 0 clamp(8px, 1.2vw, 10px) clamp(6px, 1vw, 8px);
 }
 
 .closure-gradient-card__next-step {
-  margin-top: clamp(18px, 2.4vw, 24px);
+  margin-top: 2px;
   padding-top: clamp(14px, 2vw, 18px);
   border-top: 1px solid rgba(29, 29, 31, 0.08);
 }
@@ -1489,10 +1527,29 @@
 
 .closure-gradient-card__next-step-body {
   margin: 0;
-  font-family: var(--welcome-font-serif);
+  font-family: var(--welcome-font-serif, Georgia, "Iowan Old Style", "Times New Roman", serif);
   font-size: clamp(0.98rem, 1.05vw, 1.06rem);
   line-height: 1.62;
   color: rgba(29, 29, 31, 0.88);
+}
+
+.closure-gradient-card__thank-you {
+  margin: 0;
+  padding-top: 2px;
+  font-family: var(--welcome-font-serif, Georgia, "Iowan Old Style", "Times New Roman", serif);
+  font-size: clamp(1rem, 1.08vw, 1.08rem);
+  line-height: 1.58;
+  color: rgba(29, 29, 31, 0.82);
+  font-style: italic;
+}
+
+.closure-gradient-card__footnote {
+  margin: 0;
+  font-family: var(--welcome-font-sans);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: rgba(29, 29, 31, 0.48);
 }
 
 .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body {

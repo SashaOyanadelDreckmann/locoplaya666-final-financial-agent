@@ -16,32 +16,31 @@ describe('buildClosureCarouselPages', () => {
 
     const pages = buildClosureCarouselPages(summary);
     expect(pages).toHaveLength(1);
-    expect(pages[0]).toMatchObject({ roman: 'I', tone: 'gold', label: 'Resumen' });
-    expect(pages[0].footer).toContain('no admite nuevas interacciones');
+    expect(pages[0].footer).toContain('Chat cerrado');
     expect(pages[0].body).toContain('Prioriza liquidez');
-    expect(pages[0].body).toContain('Plan con tres frentes');
   });
 });
 
 describe('buildChatClosureSummary', () => {
-  it('builds a long single-page body from conversation messages', () => {
+  it('builds a premium narrative summary without chat transcript formatting', () => {
     const summary = buildChatClosureSummary({
       chatId: 'chat-1',
       messages: [
         { role: 'user', content: 'Como voy con el presupuesto?' },
-        { role: 'assistant', content: 'Tu balance mensual queda positivo en 120 mil.' },
+        { role: 'assistant', content: 'Tu balance mensual queda positivo en 120 mil. Conviene reforzar el colchon.' },
         { role: 'user', content: 'Que deberia priorizar?' },
         { role: 'assistant', content: 'Primero colchon de emergencia y luego APV voluntario.' },
       ],
       turnsRemaining: 0,
     });
 
-    expect(summary.body).toContain('Recorrido');
-    expect(summary.body).toContain('Sintesis de cierre');
-    expect(summary.body).toContain('Primero colchon de emergencia');
+    expect(summary.body).toContain('Este cierre resume');
+    expect(summary.body).not.toContain('**Consulta:**');
+    expect(summary.body).not.toContain('**Respuesta:**');
+    expect(summary.body).not.toContain('Recorrido');
     expect(summary.body).not.toContain('retoma');
     expect(summary.nextStep).toMatch(/^Fuera de la app,/);
-    expect(summary.footer).toContain('no admite nuevas interacciones');
-    expect(summary.body.length).toBeGreaterThan(200);
+    expect(summary.thankYou).toContain('Gracias');
+    expect(summary.footer).toContain('Chat cerrado');
   });
 });

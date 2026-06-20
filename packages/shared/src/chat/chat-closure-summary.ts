@@ -16,6 +16,7 @@ export type ChatClosureSummary = {
   subtitle: string;
   body: string;
   nextStep: string;
+  thankYou: string;
   /** @deprecated Legacy carousel sections; kept for persisted sheets. */
   sections?: ChatClosureSummarySection[];
   footer: string;
@@ -38,6 +39,9 @@ function stripResumeLanguage(value: string): string {
     .replace(/listo para retomar cuando quieras\.?/gi, '')
     .replace(/puedes retomar[^.!?]*[.!?]?/gi, '')
     .replace(/retoma desde este punto\.?/gi, '')
+    .replace(/\*\*Consulta:\*\*[^*]+/gi, '')
+    .replace(/\*\*Respuesta:\*\*/gi, '')
+    .replace(/###\s*Recorrido/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -46,27 +50,24 @@ function resolveChatTone(chatId: ProductChatId) {
   if (chatId === 'chat-2') {
     return {
       kicker: 'Cierre ejecutivo',
-      title: 'Resumen del plan de accion',
-      subtitle: 'Sintesis del plan, trade-offs y validacion pendiente fuera de la app.',
-      criterion:
-        'Prioriza liquidez, horizonte y trade-offs claros antes de abrir nuevas decisiones.',
+      title: 'Resumen del plan',
+      subtitle: 'Sintesis del plan y validacion pendiente fuera de la app.',
+      focus: 'decisiones, secuencia y trade-offs del plan',
     };
   }
   if (chatId === 'chat-3') {
     return {
       kicker: 'Cierre reflexivo',
-      title: 'Resumen de conciencia social',
-      subtitle: 'Lectura de la tension entre dinero, valores y contexto.',
-      criterion:
-        'La pregunta central no es solo cuanto cuesta, sino que valores sostiene cada decision.',
+      title: 'Resumen reflexivo',
+      subtitle: 'Lectura de valores, tensiones y sentido personal.',
+      focus: 'valores, tensiones y marco personal',
     };
   }
   return {
     kicker: 'Cierre del diagnostico',
-    title: 'Resumen del chat general',
+    title: 'Resumen del chat',
     subtitle: 'Sintesis de lo conversado y accion concreta fuera de la app.',
-    criterion:
-      'Primero evidencia real, luego presupuesto y finalmente prioridad: no cierres temas con caja fragil.',
+    focus: 'diagnostico, evidencia y prioridades',
   };
 }
 
@@ -103,15 +104,19 @@ export function resolveClosureSummaryBody(summary: ChatClosureSummary): string {
   if (body.length > 0) return summary.body;
 
   if (Array.isArray(summary.sections) && summary.sections.length > 0) {
-    return stripResumeLanguage(
+    const legacy = stripResumeLanguage(
       summary.sections
         .filter((section) => !/proximo paso|siguiente paso|siguiente pregunta/i.test(section.label))
-        .map((section) => `### ${section.label}\n\n${stripResumeLanguage(section.body)}`)
-        .join('\n\n'),
+        .map((section) => stripResumeLanguage(section.body))
+        .filter(Boolean)
+        .join(' '),
     );
+    if (legacy.length > 0) {
+      return legacy;
+    }
   }
 
-  return '';
+  return 'Se consolido una lectura final sobria, util para cerrar esta conversacion con claridad.';
 }
 
 export function resolveClosureSummaryNextStep(summary: ChatClosureSummary): string {
@@ -130,6 +135,12 @@ export function resolveClosureSummaryNextStep(summary: ChatClosureSummary): stri
   return 'Fuera de la app, guarda este resumen en PDF y ejecuta una sola accion concreta esta semana, con monto y fecha si aplica.';
 }
 
+export function resolveClosureSummaryThankYou(summary: ChatClosureSummary): string {
+  const thankYou = normalizeContent(summary.thankYou);
+  if (thankYou.length > 0) return thankYou;
+  return 'Gracias por tu tiempo y confianza en este proceso.';
+}
+
 function buildFallbackMessages(params: {
   userMessage?: string;
   assistantMessage?: string;
@@ -140,6 +151,94 @@ function buildFallbackMessages(params: {
   if (user) out.push({ role: 'user', content: user });
   if (assistant) out.push({ role: 'assistant', content: assistant });
   return out;
+}
+
+function extractInsightSentences(text: string): string[] {
+  const sentences = String(text ?? '')
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 24);
+
+  const prioritized = sentences.filter((sentence) =>
+    /recomiendo|conviene|prior|importante|en resumen|en sintesis|clave|riesgo|deb(es|er)|podrias|sugiero|conclusion|conviene|alerta|vigila|valida|calendariza|trade-off|liquidez|horizonte/i.test(
+      sentence,
+    ),
+  );
+
+  const pool = prioritized.length > 0 ? prioritized : sentences;
+  return pool.slice(0, 4);
+}
+
+function detectFocusTopics(corpus: string, chatId: ProductChatId): string {
+  const topics: string[] = [];
+
+  if (/presupuesto|gasto|ingreso|balance/.test(corpus)) topics.push('presupuesto');
+  if (/deuda|credito|cuota|tarjeta/.test(corpus)) topics.push('deuda');
+  if (/ahorro|apv|fondo|emergencia|meta/.test(corpus)) topics.push('ahorro');
+  if (/cartola|movimiento|transaccion|banco|producto/.test(corpus)) topics.push('evidencia bancaria');
+  if (/liquidez|plan|ejecut|prioridad|secuencia/.test(corpus)) topics.push('plan de accion');
+  if (/valor|etica|proposito|sociedad|tension/.test(corpus)) topics.push('valores y contexto');
+  if (/politic|actualidad|noticia|gobierno/.test(corpus) && topics.length === 0) {
+    topics.push('consultas generales');
+  }
+
+  if (topics.length === 0) {
+    return resolveChatTone(chatId).focus;
+  }
+
+  if (topics.length === 1) return topics[0];
+  if (topics.length === 2) return `${topics[0]} y ${topics[1]}`;
+  return `${topics.slice(0, -1).join(', ')} y ${topics[topics.length - 1]}`;
+}
+
+function buildNarrativeSummary(params: {
+  chatId: ProductChatId;
+  messages: ClosureMessage[];
+}): string {
+  const tone = resolveChatTone(params.chatId);
+  const userMessages = params.messages.filter((message) => message.role === 'user');
+  const assistantMessages = params.messages.filter((message) => message.role === 'assistant');
+  const interactionCount = Math.max(userMessages.length, 1);
+  const corpus = params.messages.map((message) => message.content).join(' ').toLowerCase();
+  const focusTopics = detectFocusTopics(corpus, params.chatId);
+  const lastUser = normalizeContent(userMessages[userMessages.length - 1]?.content ?? '');
+  const insights = assistantMessages
+    .flatMap((message) => extractInsightSentences(message.content))
+    .filter((sentence, index, list) => list.indexOf(sentence) === index)
+    .slice(0, 3);
+
+  const paragraphs: string[] = [];
+
+  paragraphs.push(
+    `Este cierre resume ${interactionCount} interaccion${
+      interactionCount === 1 ? '' : 'es'
+    } centradas en ${focusTopics}. No repite el chat palabra por palabra: condensa lo esencial para que cierres con claridad.`,
+  );
+
+  if (insights.length > 0) {
+    paragraphs.push(insights.join(' '));
+  } else {
+    const fallback = normalizeContent(assistantMessages[assistantMessages.length - 1]?.content ?? '');
+    paragraphs.push(
+      truncateText(
+        fallback,
+        520,
+      ) ||
+        'La conversacion dejo una lectura sobria y accionable, alineada con tu contexto y sin prometer resultados fuera de lugar.',
+    );
+  }
+
+  if (lastUser.length > 0) {
+    paragraphs.push(
+      `Al cerrar, tu ultimo foco fue "${truncateText(lastUser, 110)}". Esa linea orienta el proximo paso fuera de esta sesion.`,
+    );
+  } else {
+    paragraphs.push(
+      `El hilo convergio en ${tone.focus}; usa ese foco como brujula para lo que hagas despues, fuera de la app.`,
+    );
+  }
+
+  return paragraphs.join('\n\n');
 }
 
 function extractActionCandidates(text: string): string[] {
@@ -191,7 +290,7 @@ function buildNextStep(params: {
     if (/valor|etica|familia|comunidad|proposito/.test(corpus)) {
       return 'Fuera de la app, escribe una nota personal sobre que valor quieres sostener la proxima vez que enfrentes una decision con plata.';
     }
-    return 'Fuera de la app, deja por escrito una pregunta abierta sobre tu relacion con el dinero y revisala en un momento de calma, sin volver a este chat.';
+    return 'Fuera de la app, deja por escrito una pregunta abierta sobre tu relacion con el dinero y revisala en un momento de calma.';
   }
 
   if (/presupuesto|gasto|ingreso|balance/.test(corpus)) {
@@ -208,73 +307,20 @@ function buildNextStep(params: {
   }
 
   if (normalizeContent(lastUser).length > 0) {
-    return `Fuera de la app, convierte tu ultima consulta ("${truncateText(lastUser, 96)}") en una accion concreta con fecha en tu calendario o bloc de notas.`;
+    return `Fuera de la app, convierte tu ultima inquietud ("${truncateText(lastUser, 96)}") en una accion concreta con fecha en tu calendario o bloc de notas.`;
   }
 
   return 'Fuera de la app, guarda este resumen en PDF y ejecuta una sola accion concreta esta semana, con monto y fecha si aplica.';
 }
 
-function buildLongClosureBody(params: {
-  chatId: ProductChatId;
-  messages: ClosureMessage[];
-}): string {
-  const tone = resolveChatTone(params.chatId);
-  const userMessages = params.messages.filter((message) => message.role === 'user');
-  const assistantMessages = params.messages.filter((message) => message.role === 'assistant');
-  const interactionCount = userMessages.length;
-  const lastAssistant = assistantMessages[assistantMessages.length - 1];
-  const lastAssistantText = lastAssistant ? normalizeContent(lastAssistant.content) : '';
-
-  const exchanges: string[] = [];
-  let pendingUser: string | null = null;
-
-  for (const message of params.messages) {
-    if (message.role === 'user') {
-      pendingUser = normalizeContent(message.content);
-      continue;
-    }
-
-    const assistantText = normalizeContent(message.content);
-    if (!assistantText) continue;
-
-    const userLine = pendingUser
-      ? `**Consulta:** ${truncateText(pendingUser, 320)}\n\n`
-      : '';
-    pendingUser = null;
-
-    exchanges.push(
-      `${userLine}**Respuesta:** ${
-        assistantText.length > 1600 ? truncateText(assistantText, 1600) : assistantText
-      }`,
-    );
+function buildThankYou(chatId: ProductChatId): string {
+  if (chatId === 'chat-2') {
+    return 'Gracias por cerrar este plan con rigor. Lleva el PDF como registro y ejecuta una decision concreta esta semana.';
   }
-
-  if (pendingUser) {
-    exchanges.push(`**Consulta pendiente:** ${truncateText(pendingUser, 320)}`);
+  if (chatId === 'chat-3') {
+    return 'Gracias por sostener esta conversacion con honestidad. Quédate con la pregunta que mas te movio y hazla tuya fuera de aqui.';
   }
-
-  const parts: string[] = [];
-  parts.push(
-    `Esta conversacion recorrio ${Math.max(interactionCount, 1)} interaccion${
-      interactionCount === 1 ? '' : 'es'
-    }. ${tone.criterion}`,
-  );
-
-  if (exchanges.length > 1) {
-    parts.push('\n\n### Recorrido\n\n' + exchanges.slice(0, -1).join('\n\n---\n\n'));
-  }
-
-  if (lastAssistantText) {
-    parts.push(`\n\n### Sintesis de cierre\n\n${lastAssistantText.slice(0, 6000)}`);
-  } else if (exchanges.length > 0) {
-    parts.push(`\n\n### Sintesis de cierre\n\n${exchanges[exchanges.length - 1]}`);
-  } else {
-    parts.push(
-      '\n\n### Sintesis de cierre\n\nSe consolido una lectura final con la evidencia disponible en el chat.',
-    );
-  }
-
-  return parts.join('');
+  return 'Gracias por tu tiempo y confianza en este espacio. Este cierre queda archivado para ti; sigue con el proximo paso en tu mundo real.';
 }
 
 export function buildChatClosureSummary(params: {
@@ -293,7 +339,7 @@ export function buildChatClosureSummary(params: {
   const lastAssistantText = assistantMessages[assistantMessages.length - 1]
     ? normalizeContent(assistantMessages[assistantMessages.length - 1].content)
     : normalizeContent(params.assistantMessage ?? '');
-  const body = buildLongClosureBody({
+  const body = buildNarrativeSummary({
     chatId: params.chatId,
     messages,
   });
@@ -302,6 +348,7 @@ export function buildChatClosureSummary(params: {
     messages,
     lastAssistantText,
   });
+  const thankYou = buildThankYou(params.chatId);
   const closed = Number(params.turnsRemaining ?? 0) <= 0;
 
   return {
@@ -310,8 +357,9 @@ export function buildChatClosureSummary(params: {
     subtitle: tone.subtitle,
     body,
     nextStep,
+    thankYou,
     footer: closed
-      ? 'Este chat ya no admite nuevas interacciones. Conserva el PDF como registro personal.'
-      : 'Cierre en curso: usa el proximo paso como accion fuera de la app.',
+      ? 'Chat cerrado · puedes exportar este resumen en PDF.'
+      : 'Cierre en curso · prepara tu accion fuera de la app.',
   };
 }

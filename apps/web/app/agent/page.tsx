@@ -182,7 +182,9 @@ import { normalizeUploadFormat } from './modales/transacciones/tx-assistant.help
 import {
   buildChatUploadAgentPrompt,
   buildChatUploadFiles,
+  buildChatUploadUserMessage,
   mapChatAttachmentAnalysisToSummary,
+  mergeChatUploadFiles,
 } from './chat/chat-upload.helpers';
 import { buildPanelSnapshotPayload } from './page.flow';
 import { clearPanelStateBackups, hydratePanelState } from './utilidades/panel-state.service';
@@ -587,6 +589,8 @@ export default function AgentPage() {
     return String(items.length);
   }, [items]);
   const input = activeThread?.draft ?? '';
+  const [pendingChatUploadFiles, setPendingChatUploadFiles] = useState<File[]>([]);
+  const hasComposerContent = Boolean(input.trim()) || pendingChatUploadFiles.length > 0;
   const hasBlockingModalOpen =
     isTransactionsModalOpen ||
     isBudgetModalOpen ||
@@ -1053,7 +1057,10 @@ export default function AgentPage() {
             'kicker' in s.closureSummary &&
             'title' in s.closureSummary &&
             'subtitle' in s.closureSummary &&
-            ('body' in s.closureSummary || 'sections' in s.closureSummary || 'nextStep' in s.closureSummary)
+            ('body' in s.closureSummary ||
+              'sections' in s.closureSummary ||
+              'nextStep' in s.closureSummary ||
+              'thankYou' in s.closureSummary)
               ? (s.closureSummary as ChatClosureSummary)
               : null,
           generalChatStarted: Boolean(s.generalChatStarted ?? false),
@@ -2292,6 +2299,10 @@ export default function AgentPage() {
   }, [hasBlockingModalOpen, isActiveChatLocked, isActiveChatClosed, isMobileViewport]);
 
   useEffect(() => {
+    setPendingChatUploadFiles([]);
+  }, [activeChatId]);
+
+  useEffect(() => {
     if (!isMobileViewport) {
       blockingModalWasOpenRef.current = hasBlockingModalOpen;
       return;
@@ -2309,6 +2320,7 @@ export default function AgentPage() {
       assistantPendingLabel?: string;
       hideUserMessage?: boolean;
       ignoreLoadingGuard?: boolean;
+      skipPendingUpload?: boolean;
     }
   ): Promise<boolean> {
     if (!isAuthenticated) {
@@ -2317,8 +2329,10 @@ export default function AgentPage() {
     }
     const liveComposerText = chatComposerRef.current?.value ?? '';
     const outgoingText = String(messageOverride ?? liveComposerText ?? input ?? '').trim();
-    if (!outgoingText || (loading && !options?.ignoreLoadingGuard)) return false;
-    if (tryResolveBudgetPendingFromAnswer(outgoingText)) {
+    const hasPendingUpload = pendingChatUploadFiles.length > 0;
+    if (!outgoingText && !hasPendingUpload) return false;
+    if (loading && !options?.ignoreLoadingGuard) return false;
+    if (outgoingText && tryResolveBudgetPendingFromAnswer(outgoingText)) {
       if (!messageOverride) setDraftForActive('');
       return true;
     }
@@ -2365,6 +2379,14 @@ export default function AgentPage() {
       ]);
       return false;
     }
+
+    if (hasPendingUpload && !options?.skipPendingUpload && !options?.agentPayload) {
+      haptic(8);
+      if (isMobileViewport) dismissMobileKeyboard();
+      return submitPendingChatUpload(outgoingText, options);
+    }
+
+    if (!outgoingText) return false;
     haptic(8);
     if (isMobileViewport) dismissMobileKeyboard();
 
@@ -2387,7 +2409,7 @@ export default function AgentPage() {
     );
   }
 
-  async function onUploadFromChat(files: FileList | null) {
+  function onAttachFilesToChat(files: FileList | null) {
     if (!files || files.length === 0) return;
     if (!isAuthenticated) {
       router.replace('/login');
@@ -2396,44 +2418,12 @@ export default function AgentPage() {
     if (blockFincoinSpend({ context: 'upload' })) return;
     if (isActiveChatLocked || isActiveChatClosed) return;
 
-    let selected = Array.from(files);
-    if (selected.length > MAX_CHAT_UPLOAD_FILES) {
-      setItemsForActive((prev) => [
-        ...prev,
-        {
-          type: 'message',
-          role: 'assistant',
-          content: `Solo puedes adjuntar hasta ${MAX_CHAT_UPLOAD_FILES} archivos por envío. Tomé los primeros ${MAX_CHAT_UPLOAD_FILES}.`,
-        },
-      ]);
-      selected = selected.slice(0, MAX_CHAT_UPLOAD_FILES);
-    }
-    const allowedExt = new Set([
-      'png',
-      'jpg',
-      'jpeg',
-      'webp',
-      'gif',
-      'pdf',
-      'xls',
-      'xlsx',
-      'csv',
-      'tsv',
-      'txt',
-      'md',
-      'json',
-      'xml',
-      'yaml',
-      'yml',
-      'log',
-    ]);
-    const accepted = selected.filter((file) => {
-      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-      return file.type.startsWith('image/') || file.type === 'application/pdf' || allowedExt.has(ext);
+    const mergeResult = mergeChatUploadFiles(pendingChatUploadFiles, Array.from(files), {
+      maxFiles: MAX_CHAT_UPLOAD_FILES,
+      maxTotalBytes: CHAT_MAX_TOTAL_FILE_BYTES,
     });
-    const rejected = selected.filter((file) => !accepted.includes(file));
-    const totalBytes = accepted.reduce((sum, file) => sum + file.size, 0);
-    if (accepted.length === 0) {
+
+    if (mergeResult.rejected.length > 0) {
       setItemsForActive((prev) => [
         ...prev,
         {
@@ -2443,9 +2433,18 @@ export default function AgentPage() {
             'No pude adjuntar esos formatos. Sube PDF, imágenes, Excel, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.',
         },
       ]);
-      return;
     }
-    if (totalBytes > CHAT_MAX_TOTAL_FILE_BYTES) {
+    if (mergeResult.exceededSlots) {
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content: `Solo puedes adjuntar hasta ${MAX_CHAT_UPLOAD_FILES} archivos por envío.`,
+        },
+      ]);
+    }
+    if (mergeResult.exceededTotalBytes) {
       setItemsForActive((prev) => [
         ...prev,
         {
@@ -2454,22 +2453,38 @@ export default function AgentPage() {
           content: `La carga supera ${Math.round(CHAT_MAX_TOTAL_FILE_BYTES / (1024 * 1024))} MB. Divide los archivos y vuelve a intentar.`,
         },
       ]);
-      return;
     }
+    if (mergeResult.addedCount === 0) return;
 
-    if (rejected.length > 0) {
-      setItemsForActive((prev) => [
-        ...prev,
-        {
-          type: 'message',
-          role: 'assistant',
-          content: `Omití ${rejected.length} archivo(s) no compatible(s): ${rejected
-            .map((f) => f.name)
-            .slice(0, 6)
-            .join(', ')}.`,
-        },
-      ]);
-    }
+    setPendingChatUploadFiles(mergeResult.files);
+    window.requestAnimationFrame(() => {
+      focusComposerAfterLayout({ collapsePanelFirst: true });
+    });
+  }
+
+  function removePendingChatUploadFile(target: File) {
+    setPendingChatUploadFiles((prev) =>
+      prev.filter(
+        (file) =>
+          !(
+            file.name === target.name &&
+            file.size === target.size &&
+            file.lastModified === target.lastModified
+          ),
+      ),
+    );
+  }
+
+  async function submitPendingChatUpload(
+    userMessage: string,
+    options?: {
+      ignoreLoadingGuard?: boolean;
+    },
+  ): Promise<boolean> {
+    const accepted = pendingChatUploadFiles;
+    if (accepted.length === 0) return false;
+
+    setPendingChatUploadFiles([]);
 
     const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const uploadFiles = buildChatUploadFiles(accepted);
@@ -2505,7 +2520,7 @@ export default function AgentPage() {
           content: 'No pude leer uno o más archivos en el dispositivo. Vuelve a intentar.',
         },
       ]);
-      return;
+      return false;
     }
 
     let parsed: { attachments?: Array<Record<string, unknown>> } | null = null;
@@ -2531,7 +2546,7 @@ export default function AgentPage() {
             'No pude analizar esos archivos todavía. Vuelve a intentar y, si persiste, prueba con una imagen o PDF más liviano.',
         },
       ]);
-      return;
+      return false;
     }
 
     patchUploadItem(uploadId, { status: 'ready' });
@@ -2539,17 +2554,17 @@ export default function AgentPage() {
     const attachmentSummaries = parsedAttachments.map((attachment) =>
       mapChatAttachmentAnalysisToSummary(attachment),
     );
+    const visibleMessage = buildChatUploadUserMessage({ userMessage, fileNames: names });
     const agentPayload = buildChatUploadAgentPrompt({
       fileNames: names,
       attachments: attachmentSummaries,
+      userMessage,
     });
-    const dispatched = await onSend(`Analiza los archivos adjuntos (${names.join(', ')})`, {
+    const result = await sendCoreAgentMessage(visibleMessage, {
       agentPayload,
-      hideUserMessage: true,
-      ignoreLoadingGuard: true,
-      assistantPendingLabel: 'Escaneando y analizando tus archivos…',
+      ignoreLoadingGuard: options?.ignoreLoadingGuard,
     });
-    if (!dispatched) {
+    if (!result.ok) {
       patchUploadItem(uploadId, { status: 'error' });
       setItemsForActive((prev) => [
         ...prev,
@@ -2561,8 +2576,8 @@ export default function AgentPage() {
         },
       ]);
     }
+    return result.ok;
   }
-
   const buildInterviewIntakePayload = useCallback(() => {
     const baseIntake =
       sessionInfo?.injectedIntake?.intake && typeof sessionInfo.injectedIntake.intake === 'object'
@@ -3712,9 +3727,33 @@ export default function AgentPage() {
           onReject={rejectBudgetTablePending}
         />
       ) : null}
+      {pendingChatUploadFiles.length > 0 ? (
+        <div className="agent-composer-attachments" aria-label="Archivos listos para enviar">
+          {pendingChatUploadFiles.map((file) => (
+            <span
+              key={`pending-${file.name}-${file.size}-${file.lastModified}`}
+              className="agent-composer-attachment-pill"
+              title={file.name}
+            >
+              <span className="agent-composer-attachment-name">{file.name}</span>
+              <button
+                type="button"
+                className="agent-composer-attachment-remove"
+                onClick={() => removePendingChatUploadFile(file)}
+                aria-label={`Quitar ${file.name}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <span className="agent-composer-attachments-count" aria-live="polite">
+            {pendingChatUploadFiles.length}/{MAX_CHAT_UPLOAD_FILES}
+          </span>
+        </div>
+      ) : null}
       <div
       className={`agent-input-shell terminal-composer-shell${
-        input.trim() ? ' has-composer-text' : ''
+        hasComposerContent ? ' has-composer-text' : ''
       }${isComposerFocused ? ' composer-focused' : ''}`}
     >
       <div
@@ -3750,10 +3789,12 @@ export default function AgentPage() {
                 ? 'Chat cerrado · solo lectura'
               : isActiveChatLocked
                 ? 'Chat bloqueado hasta completar la entrevista'
+                : pendingChatUploadFiles.length > 0
+                  ? 'Añade contexto o una pregunta (opcional)…'
                 : ''
           }
           value={input}
-          disabled={isActiveChatLocked || isActiveChatClosed || fincoinSpendBlocked}
+          disabled={isActiveChatLocked || isActiveChatClosed || fincoinSpendBlocked || documentsLoading}
           autoFocus={!hasBlockingModalOpen && !isMobileViewport}
           enterKeyHint="send"
           inputMode="text"
@@ -3782,7 +3823,7 @@ export default function AgentPage() {
           multiple
           style={{ display: 'none' }}
           onChange={(e) => {
-            void onUploadFromChat(e.target.files);
+            onAttachFilesToChat(e.target.files);
             e.currentTarget.value = '';
           }}
         />
@@ -3820,8 +3861,8 @@ export default function AgentPage() {
 
         <button
           type="button"
-          className={`composer-send-btn${input.trim() ? ' is-send-ready' : ''}`}
-          disabled={isActiveChatLocked || isActiveChatClosed || fincoinSpendBlocked}
+          className={`composer-send-btn${hasComposerContent ? ' is-send-ready' : ''}`}
+          disabled={isActiveChatLocked || isActiveChatClosed || fincoinSpendBlocked || documentsLoading || loading}
           onClick={() => {
             void onSend(chatComposerRef.current?.value ?? input);
           }}
@@ -4023,7 +4064,7 @@ export default function AgentPage() {
               />
             ) : null}
             <div
-              className={`agent-mobile-composer-dock${input.trim() ? ' has-composer-text' : ''}${isComposerFocused ? ' composer-focused' : ''}`}
+              className={`agent-mobile-composer-dock${hasComposerContent ? ' has-composer-text' : ''}${isComposerFocused ? ' composer-focused' : ''}`}
             >
               {terminalComposerShell}
             </div>
