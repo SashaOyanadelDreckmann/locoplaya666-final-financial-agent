@@ -989,6 +989,8 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                     type="button"
                     className="latex-doc-save-btn closure-gradient-card__save-btn"
                     disabled={savingClosurePdf}
+                    aria-label="Guardar PDF"
+                    title="Guardar PDF"
                     onClick={(e) => {
                       const btn = e.currentTarget as HTMLButtonElement;
                       const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
@@ -1051,7 +1053,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                       })();
                     }}
                   >
-                    {savingClosurePdf ? 'Guardando…' : 'Guardar PDF'}
+                    {savingClosurePdf ? '…' : 'PDF'}
                   </button>
                 }
               />

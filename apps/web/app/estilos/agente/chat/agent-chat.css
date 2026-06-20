@@ -687,17 +687,25 @@
 }
 
 /* After the first user turn, compress welcome shell so messages below stay visible */
-.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-empty-welcome,
-.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-closure-welcome {
+.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-empty-welcome {
   min-height: clamp(420px, 58vh, 680px);
 }
 
-.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body,
-.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-empty-welcome-body {
+.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-closure-welcome {
+  min-height: 0;
+  height: auto;
+}
+
+.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body {
   min-height: clamp(400px, 56vh, 660px);
 }
 
-.agent-thread:has(> .agent-bubble.user) .gradient-blob-card {
+.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-closure-summary-body {
+  min-height: 0;
+  max-height: none;
+}
+
+.agent-thread:has(> .agent-bubble.user) .gradient-blob-card:not(.gradient-blob-card--closure) {
   min-height: clamp(380px, 54vh, 640px);
 }
 
@@ -1442,7 +1450,7 @@
 
 .agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-closure-summary-body {
   min-height: 0;
-  max-height: min(68vh, 760px);
+  max-height: none;
   overflow: visible;
   padding: 0;
   background: transparent;
@@ -1465,41 +1473,61 @@
 }
 
 .closure-gradient-card__editorial {
-  padding-top: clamp(18px, 2.8vw, 24px);
+  padding-top: clamp(14px, 2.2vw, 20px);
 }
 
 .closure-gradient-card__header-bar {
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 44px;
-  padding: 0 clamp(12px, 2.4vw, 18px) clamp(14px, 2vw, 18px);
+  display: block;
+  padding: 0 clamp(14px, 2.6vw, 20px) clamp(12px, 1.8vw, 16px);
 }
 
 .closure-gradient-card__title {
   margin: 0;
-  max-width: min(100%, 18ch);
-  padding: 6px clamp(92px, 18vw, 112px) 0;
-  text-align: center;
+  width: 100%;
+  max-width: none;
+  padding: 2px 46px 0 0;
+  text-align: left;
   font-family: var(--welcome-font-sans);
-  font-size: clamp(1.18rem, 2.2vw, 1.42rem);
+  font-size: clamp(1.08rem, 2.1vw, 1.34rem);
   font-weight: 650;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
+  letter-spacing: -0.022em;
+  line-height: 1.22;
   color: #1d1d1f;
+  word-break: normal;
+  overflow-wrap: normal;
+  white-space: normal;
 }
 
 .closure-gradient-card__save-slot {
   position: absolute;
   top: 0;
-  right: clamp(10px, 2vw, 14px);
+  right: clamp(8px, 1.6vw, 12px);
   z-index: 2;
 }
 
 .closure-gradient-card__save-btn {
   position: static;
   white-space: nowrap;
+}
+
+.agent-bubble.assistant.latex-doc.is-closure-welcome .closure-gradient-card__save-btn.latex-doc-save-btn,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-closure-welcome .closure-gradient-card__save-btn.latex-doc-save-btn {
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  padding: 4px 9px !important;
+  font-size: 0.58rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  line-height: 1 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
+}
+
+.closure-gradient-card-wrap .gradient-blob-card__masthead-accent {
+  width: min(220px, 56%);
+  margin-inline: clamp(14px, 2.6vw, 20px);
 }
 
 .closure-gradient-card__content {
@@ -1550,6 +1578,45 @@
   line-height: 1.45;
   letter-spacing: 0.02em;
   color: rgba(29, 29, 31, 0.48);
+}
+
+@media (min-width: 900px) {
+  .closure-gradient-card__title {
+    padding-right: 52px;
+    font-size: clamp(1.16rem, 1.5vw, 1.38rem);
+  }
+
+  .closure-gradient-card__header-bar {
+    padding-inline: clamp(18px, 2.4vw, 24px);
+  }
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-closure-summary-body {
+    max-height: none;
+  }
+
+  .closure-gradient-card-wrap .gradient-blob-card__editorial {
+    padding-inline: clamp(14px, 4vw, 18px);
+    padding-bottom: clamp(14px, 3vw, 18px);
+  }
+
+  .closure-gradient-card__title {
+    padding-right: 42px;
+    font-size: 1.06rem;
+    line-height: 1.24;
+  }
+
+  .closure-gradient-card__content {
+    padding-inline: 0;
+  }
+
+  .closure-gradient-card__next-step-body,
+  .closure-gradient-card__thank-you,
+  .agent-bubble.assistant.latex-doc.is-closure-welcome .gradient-blob-card__closure-markdown {
+    font-size: 0.94rem;
+    line-height: 1.6;
+  }
 }
 
 .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body {

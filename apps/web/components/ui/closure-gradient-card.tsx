@@ -35,10 +35,10 @@ export function ClosureGradientBlobCard({
         <div className="gradient-blob-card__glass closure-gradient-card__glass">
           <div className="gradient-blob-card__editorial closure-gradient-card__editorial">
             <header className="closure-gradient-card__header-bar">
+              <h2 className="closure-gradient-card__title">{summary.title}</h2>
               {saveAction ? (
                 <div className="closure-gradient-card__save-slot">{saveAction}</div>
               ) : null}
-              <h2 className="closure-gradient-card__title">{summary.title}</h2>
             </header>
             <div
               className="gradient-blob-card__masthead-accent gradient-blob-card__masthead-accent--gold"
