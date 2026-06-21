@@ -16,6 +16,7 @@ import {
   type BudgetMovementRecord,
   type BudgetProductMovementLedger,
 } from './budget-movement-feed';
+import { isBudgetProductSeededRows } from './budget-rows';
 
 export type { BudgetMovementRecord, BudgetProductMovementLedger };
 
@@ -663,8 +664,9 @@ export function buildBudgetInitTurn(
   context: BudgetAssistantContext,
 ): { reply: string; followUp: string; focusRowId: string | null } {
   const movementIntro = summarizeMovementIntro(context);
-  const baseTableIntro =
-    'Dejé tres filas base en la tabla: un ingreso y dos gastos genéricos para arrancar sin ruido.';
+  const baseTableIntro = isBudgetProductSeededRows(rows)
+    ? 'Agrupé movimientos inferidos desde tus productos en la tabla para arrancar con datos reales.'
+    : 'Dejé tres filas base en la tabla: un ingreso y dos gastos genéricos para arrancar sin ruido.';
   const suggestions = buildBudgetRowSuggestions(rows, context);
   const addSuggestions = suggestions.filter((item) => item.kind === 'add').slice(0, 2);
 

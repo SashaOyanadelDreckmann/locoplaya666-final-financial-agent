@@ -252,6 +252,15 @@ export function mergeBudgetTemplate(rows: BudgetRow[]): BudgetRow[] {
   return [...mergedStarterRows, ...customRows];
 }
 
+export function isBudgetProductSeededRows(rows: BudgetRow[]): boolean {
+  return rows.some(
+    (row) =>
+      /^product-/.test(row.id) ||
+      /^product-group-/.test(row.id) ||
+      (row.amount > 0 && Boolean(row.product?.trim()) && Boolean(row.institution?.trim())),
+  );
+}
+
 export function buildPersistableBudgetContext(rows: BudgetRow[], totals: ReturnType<typeof computeBudgetTotals>) {
   return {
     income: Math.round(Number(totals.income) || 0),

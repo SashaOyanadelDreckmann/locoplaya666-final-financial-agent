@@ -69,6 +69,29 @@ function inferBudgetFocusRowIdFromNormalizedText(q: string): string | null {
   return null;
 }
 
+const FOCUS_ROW_MOVEMENT_TYPES: Record<string, BudgetRow['movementType']> = {
+  income_salary: 'income_main',
+  income_extra: 'income_extra',
+  expense_rent: 'housing',
+  expense_food: 'food',
+  expense_transport: 'transport',
+  expense_services: 'home_services',
+  expense_debt: 'debt',
+  expense_savings: 'savings_investment',
+  expense_other: 'leisure_other',
+};
+
+export function inferBudgetMovementTypeFromText(
+  text: string,
+  rowType: BudgetRow['type'],
+): BudgetRow['movementType'] {
+  const rowId = inferBudgetFocusRowId(text);
+  if (rowId && FOCUS_ROW_MOVEMENT_TYPES[rowId]) {
+    return FOCUS_ROW_MOVEMENT_TYPES[rowId];
+  }
+  return rowType === 'income' ? 'income_main' : 'leisure_other';
+}
+
 export function findBudgetRowByFocusId(rows: BudgetRow[], rowId: string | null | undefined): BudgetRow | null {
   if (!rowId) return null;
   const canonical = canonicalBudgetRowId(rowId);

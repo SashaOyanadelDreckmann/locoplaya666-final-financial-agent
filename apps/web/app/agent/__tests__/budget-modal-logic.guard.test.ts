@@ -52,7 +52,7 @@ describe('budget modal logic guards', () => {
   it('auto-applies budget template when modal opens with empty rows', () => {
     expect(source).toContain('const templateAppliedRef = useRef(false);');
     expect(source).toContain('if (props.budgetRows.length > 0 || templateAppliedRef.current) return;');
-    expect(source).toContain('props.applyBudgetTemplate();');
+    expect(source).toContain('props.applyBudgetTemplate(props.bankProducts);');
   });
 
   it('waits for budget rows before starting chat init', () => {

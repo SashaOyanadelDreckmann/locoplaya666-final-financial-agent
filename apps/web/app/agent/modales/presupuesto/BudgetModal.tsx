@@ -82,7 +82,7 @@ export function BudgetModal(props: {
   budgetSignals: BudgetSignals;
   updateBudgetRow: (id: string, field: keyof BudgetRow, value: string | number) => void;
   applyBudgetTableActions: (actions: BudgetTableAction[]) => void;
-  applyBudgetTemplate: () => void;
+  applyBudgetTemplate: (products?: BudgetProductSnapshot[]) => void;
   addBudgetRow: (type: 'income' | 'expense') => void;
   deleteBudgetRow: (id: string) => void;
   sendBudgetToAgent: () => void;
@@ -326,9 +326,9 @@ export function BudgetModal(props: {
     }
     if (props.budgetRows.length > 0 || templateAppliedRef.current) return;
     templateAppliedRef.current = true;
-    props.applyBudgetTemplate();
+    props.applyBudgetTemplate(props.bankProducts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.isOpen, props.budgetRows.length]);
+  }, [props.isOpen, props.budgetRows.length, props.bankProducts]);
 
   useEffect(
     () => () => {

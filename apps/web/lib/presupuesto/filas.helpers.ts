@@ -11,11 +11,15 @@ export {
   createBudgetStarterRows,
   getEffectiveBudgetRows,
   mergeBudgetTemplate,
+  mergeBudgetInitialRows,
+  buildBudgetRowsFromProducts,
+  hasBudgetProductSeedInput,
   normalizeBudgetRow,
   reconcileBudgetRows,
+  isBudgetProductSeededRows,
   inferBudgetFocusRowId,
   extractInferenceQuestionText,
   isBareBudgetAmountAnswer,
   resolveBudgetChatTargetRow,
 } from '@financial-agent/shared';
-export type { BudgetRow, BudgetTopExpense } from '@financial-agent/shared';
+export type { BudgetRow, BudgetTopExpense, BudgetProductSnapshot } from '@financial-agent/shared';

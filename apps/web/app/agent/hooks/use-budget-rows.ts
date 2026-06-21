@@ -10,7 +10,7 @@ import {
   computeBudgetTotals,
   createBudgetStarterRows,
   MAX_BUDGET_ROWS,
-  mergeBudgetTemplate,
+  mergeBudgetInitialRows,
   reconcileBudgetRows,
   type BudgetRow,
 } from '@/lib/presupuesto/filas.helpers';
@@ -18,6 +18,7 @@ import {
   applyValidatedBudgetTableAction,
   validateBudgetTableActions,
   type BudgetTableAction,
+  type BudgetProductSnapshot,
 } from '@financial-agent/shared';
 
 function sameBudgetRowId(left: string, right: string): boolean {
@@ -63,8 +64,8 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
     });
   }, []);
 
-  const applyBudgetTemplate = useCallback(() => {
-    setBudgetRows((rows) => mergeBudgetTemplate(rows));
+  const applyBudgetTemplate = useCallback((products?: BudgetProductSnapshot[]) => {
+    setBudgetRows((rows) => mergeBudgetInitialRows(products, rows));
   }, []);
 
   const addBudgetRow = useCallback((type: 'income' | 'expense') => {

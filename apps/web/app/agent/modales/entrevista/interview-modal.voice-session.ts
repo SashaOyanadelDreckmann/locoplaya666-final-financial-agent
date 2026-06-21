@@ -37,8 +37,9 @@ export function emitVoiceSessionContext(
     response: {
       output_modalities: ['audio'],
       instructions: [
-        'Inicia con tono chileno cercano y natural, con modismos frecuentes (bacán, la raja, cachai, po, la wea para referirte a cosas, weón/weona empático).',
-        'Demuestra dominio del caso citando un dato concreto del presupuesto, cartola o intake.',
+        'Este es tu PRIMER turno de la llamada. Preséntate como su amigo y deja claro que están en una conversación de confianza, sin juicio.',
+        'Usa tono chileno cercano y natural, con modismos frecuentes (bacán, la raja, cachai, po, la wea para referirte a cosas, weón/weona empático).',
+        'Después de presentarte, demuestra dominio del caso citando un dato concreto del presupuesto, cartola o intake.',
         'Formula una sola pregunta de alto valor para profundizar el diagnóstico.',
         `Foco: ${focus}`,
       ].join(' '),
