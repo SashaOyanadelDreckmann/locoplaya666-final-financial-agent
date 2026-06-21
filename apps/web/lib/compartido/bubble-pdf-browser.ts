@@ -1,10 +1,7 @@
 import fs from 'fs/promises';
-import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
 import { chromium } from 'playwright-core';
-
-const require = createRequire(path.join(process.cwd(), 'package.json'));
 
 function getChromeExecutablePathCandidates() {
   return [
@@ -71,6 +68,14 @@ async function resolveChromiumExecutablePath(): Promise<string> {
   return resolvePlaywrightCacheChromium();
 }
 
+function getKatexCssCandidates() {
+  return [
+    process.env.KATEX_CSS_PATH,
+    path.join(process.cwd(), 'apps/web/node_modules/katex/dist/katex.min.css'),
+    path.join(process.cwd(), 'node_modules/katex/dist/katex.min.css'),
+  ].filter(Boolean) as string[];
+}
+
 export async function launchBubblePdfBrowser() {
   const executablePath = await resolveChromiumExecutablePath();
   if (!executablePath) {
@@ -85,10 +90,14 @@ export async function launchBubblePdfBrowser() {
 }
 
 export async function readKatexCss(): Promise<string> {
-  try {
-    const pkgRoot = path.dirname(require.resolve('katex/package.json'));
-    return await fs.readFile(path.join(pkgRoot, 'dist', 'katex.min.css'), 'utf8');
-  } catch {
-    return '';
+  for (const candidate of getKatexCssCandidates()) {
+    try {
+      if (await pathExists(candidate)) {
+        return await fs.readFile(candidate, 'utf8');
+      }
+    } catch {
+      // Try the next candidate path.
+    }
   }
+  return '';
 }

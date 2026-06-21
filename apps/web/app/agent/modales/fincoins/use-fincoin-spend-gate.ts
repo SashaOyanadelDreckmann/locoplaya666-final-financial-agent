@@ -12,12 +12,14 @@ export function useFincoinSpendGate(params: {
   onOpenUsage: () => void;
   onNotify?: (message: string) => void;
 }) {
+  const { depleted, onOpenUsage, onNotify } = params;
+
   const blockSpend = useCallback(
     (options?: { context?: 'modal' | 'upload' | 'chat'; silent?: boolean }) => {
-      if (!isFincoinSpendBlocked(params.depleted)) return false;
+      if (!isFincoinSpendBlocked(depleted)) return false;
       if (!options?.silent) {
-        params.onOpenUsage();
-        params.onNotify?.(
+        onOpenUsage();
+        onNotify?.(
           options?.context === 'modal'
             ? FINCOIN_SPEND_BLOCKED_MODAL_MESSAGE
             : FINCOIN_SPEND_BLOCKED_MESSAGE,
@@ -25,11 +27,11 @@ export function useFincoinSpendGate(params: {
       }
       return true;
     },
-    [params.depleted, params.onNotify, params.onOpenUsage],
+    [depleted, onNotify, onOpenUsage],
   );
 
   return {
-    spendBlocked: params.depleted,
+    spendBlocked: depleted,
     blockSpend,
     blockedMessage: FINCOIN_SPEND_BLOCKED_MESSAGE,
     blockedModalMessage: FINCOIN_SPEND_BLOCKED_MODAL_MESSAGE,

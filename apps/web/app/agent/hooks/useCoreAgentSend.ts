@@ -48,7 +48,6 @@ export type UseCoreAgentSendParams = {
   clearDraft: () => void;
   getActiveThreadId: () => string;
   buildRequestContext: () => CoreAgentRequestContext;
-  getSessionId: () => string;
   prepareSend?: () => Promise<void>;
   onSideEffects: (effects: CoreAgentResponseSideEffects, response: AgentResponse) => void;
   onTransientError?: (message: string) => void;
@@ -97,9 +96,29 @@ function buildMinimalAgentSendPayload(
   };
 }
 
+function stripPayloadMeta(
+  candidate: CoreAgentRequestPayload & { _meta?: unknown },
+): CoreAgentRequestPayload {
+  const { _meta, ...stripped } = candidate;
+  void _meta;
+  return stripped;
+}
+
 export function useCoreAgentSend(params: UseCoreAgentSendParams) {
   const [loading, setLoading] = useState(false);
   const sendGuardRef = useRef(false);
+  const {
+    setItemsForActive,
+    incrementUserMessageCount,
+    clearDraft,
+    getActiveThreadId,
+    buildRequestContext,
+    prepareSend,
+    onSideEffects,
+    onTransientError,
+    onTurnSettled,
+    normalizePanelAction,
+  } = params;
 
   const sendCoreAgentMessage = useCallback(async (
     userMessage: string,
@@ -114,29 +133,29 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
       const clientMessageId =
         globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-      params.clearDraft();
+      clearDraft();
       sendGuardRef.current = true;
 
       flushSync(() => {
         setLoading(true);
-        params.setItemsForActive((prev) =>
+        setItemsForActive((prev) =>
           appendOptimisticCoreAgentTurn({
             list: prev,
             userMessage,
             hideUserMessage,
-            threadId: params.getActiveThreadId(),
+            threadId: getActiveThreadId(),
           }),
         );
       });
-      params.incrementUserMessageCount();
+      incrementUserMessageCount();
 
       try {
-        await params.prepareSend?.();
-        const requestContext = params.buildRequestContext();
+        await prepareSend?.();
+        const requestContext = buildRequestContext();
         const transportHint = readBrowserAgentTransportHint();
         const mobileClient = isMobileAgentClient(transportHint);
         const flushStreamPatches = shouldFlushAgentStreamPatches(transportHint);
-        const activeThreadId = params.getActiveThreadId();
+        const activeThreadId = getActiveThreadId();
         const sendParams = {
           userMessage,
           agentMessage,
@@ -156,7 +175,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
 
         let finalRequestPayload: CoreAgentRequestPayload | null = null;
         for (const candidate of payloadCandidates) {
-          const { _meta: _ignoredMeta, ...stripped } = candidate;
+          const stripped = stripPayloadMeta(candidate);
           if (canSerializeAgentPayload(stripped)) {
             finalRequestPayload = stripped;
             break;
@@ -170,7 +189,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
         const res = (await sendToAgentStream(finalRequestPayload, {
           onUiState: (streamState) => {
             const apply = () => {
-              params.setItemsForActive((prev) =>
+              setItemsForActive((prev) =>
                 patchStreamingAssistantMessage(prev, {
                   stream: streamState,
                   mode: streamState.mode ?? 'information',
@@ -182,7 +201,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
           },
           onDelta: (_delta, fullText) => {
             const apply = () => {
-              params.setItemsForActive((prev) =>
+              setItemsForActive((prev) =>
                 patchStreamingAssistantMessage(prev, {
                   content: fullText,
                 }),
@@ -197,18 +216,18 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
           throw new Error('Respuesta inválida del agente');
         }
 
-        if (params.normalizePanelAction) {
-          res.panel_action = params.normalizePanelAction(res.panel_action);
+        if (normalizePanelAction) {
+          res.panel_action = normalizePanelAction(res.panel_action);
         }
 
         const sideEffects = extractCoreAgentSideEffects(res);
-        params.setItemsForActive((prev) =>
+        setItemsForActive((prev) =>
           applyCoreAgentResponseToItems({
             items: prev,
             response: res,
           }),
         );
-        params.onSideEffects(sideEffects, res);
+        onSideEffects(sideEffects, res);
 
         return { ok: true, response: res };
       } catch (error: unknown) {
@@ -217,34 +236,33 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
         }
         const errorText = formatChatSendError(error);
         let transientError: string | undefined;
-        params.setItemsForActive((prev) => {
+        setItemsForActive((prev) => {
           const next = applyCoreAgentErrorItems(prev, errorText);
           transientError = next.transientError;
           return next.items;
         });
         if (transientError) {
-          params.onTransientError?.(transientError);
+          onTransientError?.(transientError);
         }
         return { ok: false, reason: 'error' };
       } finally {
         sendGuardRef.current = false;
         setLoading(false);
-        params.onTurnSettled?.();
+        onTurnSettled?.();
       }
     },
     [
       loading,
-      params.setItemsForActive,
-      params.incrementUserMessageCount,
-      params.clearDraft,
-      params.getActiveThreadId,
-      params.buildRequestContext,
-      params.getSessionId,
-      params.prepareSend,
-      params.onSideEffects,
-      params.onTransientError,
-      params.onTurnSettled,
-      params.normalizePanelAction,
+      setItemsForActive,
+      incrementUserMessageCount,
+      clearDraft,
+      getActiveThreadId,
+      buildRequestContext,
+      prepareSend,
+      onSideEffects,
+      onTransientError,
+      onTurnSettled,
+      normalizePanelAction,
     ],
   );
 

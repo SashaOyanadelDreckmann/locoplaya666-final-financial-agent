@@ -23,7 +23,6 @@ import {
   type VisualMode,
 } from '@/lib/interfaz/visual-mode';
 import { flushSync } from 'react-dom';
-import { getSessionId } from '@/lib/sesion/session';
 import type { CoreAgentResponseSideEffects } from '@/lib/agente/nucleo/applyCoreAgentResponse';
 import type { CoreAgentRequestContext } from '@/lib/agente/nucleo/buildCoreAgentContext';
 import { useCoreAgentSend } from './hooks/useCoreAgentSend';
@@ -1980,7 +1979,6 @@ export default function AgentPage() {
     clearDraft: () => setDraftForActive(''),
     getActiveThreadId: () => activeChatId,
     buildRequestContext: buildCoreAgentRequestContext,
-    getSessionId,
     prepareSend: async () => {
       await syncFinancialContextToIntake().catch(() => {});
     },
