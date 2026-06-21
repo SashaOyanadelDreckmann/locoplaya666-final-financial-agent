@@ -26,6 +26,7 @@ describe('citation-display', () => {
   it('sanitizes mixed citations and keeps only public ones', () => {
     const sanitized = sanitizePublicCitations([
       { doc_title: 'web.search' },
+      { doc_id: 'apps/api/src/mcp/tools/finance/goalPlanner.tool.ts', doc_title: 'goalPlanner.tool' },
       { doc_title: 'Biografía presidencial', url: 'https://www.bcn.cl' },
       { doc_id: 'agent:reference-date', doc_title: 'Marco de referencia temporal' },
     ]);

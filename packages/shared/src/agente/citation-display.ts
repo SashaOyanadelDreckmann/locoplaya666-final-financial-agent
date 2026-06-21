@@ -17,6 +17,8 @@ const INTERNAL_TOOL_PATTERN =
   /^(?:web|rag|market|finance|math|agent|regulatory)\.[a-z0-9_.-]+$/i;
 
 const INTERNAL_DOC_ID_PATTERN = /^(?:agent|tool|prefetch):/i;
+const INTERNAL_REPO_PATH_PATTERN =
+  /^(?:\.\/)?(?:apps|packages|scripts|docs)\/[a-z0-9_.\-\/]+\.[a-z0-9]+$/i;
 
 export function isInternalToolCitationLabel(value: unknown): boolean {
   const label = String(value ?? '').trim().toLowerCase();
@@ -24,6 +26,7 @@ export function isInternalToolCitationLabel(value: unknown): boolean {
   if (INTERNAL_TOOL_NAME_SET.has(label)) return true;
   if (INTERNAL_DOC_ID_PATTERN.test(label)) return true;
   if (INTERNAL_TOOL_PATTERN.test(label)) return true;
+  if (INTERNAL_REPO_PATH_PATTERN.test(label)) return true;
   if (label === 'marco de referencia temporal') return true;
   if (label === 'fuente' || label === 'fuente web') return false;
   return false;
