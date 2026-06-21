@@ -7011,3 +7011,53 @@ body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-
   font-size: 0.72rem;
   color: var(--tx-workspace-muted, #6b7280);
 }
+
+/* Mobile library cards — taller stage + no overlap/crop */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .transactions-modal .tx-scanner-lib-card.tx-lib-card{
+    padding: 10px 38px 34px 10px !important;
+    row-gap: 4px !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-name{
+    font-size: clamp(15px, 4.2vw, 19px) !important;
+    line-height: 1.16 !important;
+    -webkit-line-camp: 2 !important;
+  }
+
+  .transactions-modal .tx-lib-card-eyebrow{
+    line-height: 1.2 !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-bank{
+    line-height: 1.25 !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-meta{
+    margin-top: 6px !important;
+    max-width: calc(100% - 4px) !important;
+    padding-right: 72px !important;
+    box-sizing: border-box !important;
+    row-gap: 4px !important;
+    column-gap: 6px !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-meta span{
+    line-height: 1.2 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-status,
+  .transactions-modal .tx-lib-card .tx-lib-card-status{
+    right: 10px !important;
+    bottom: 8px !important;
+    max-width: 68px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}

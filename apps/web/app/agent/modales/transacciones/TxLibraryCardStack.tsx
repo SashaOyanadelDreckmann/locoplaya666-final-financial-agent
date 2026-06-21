@@ -10,6 +10,7 @@ import { assignUniquePaletteIndices } from './library-stack.helpers';
 import type { BankProduct } from './types';
 import { matteLibraryCardSurface } from './visuals';
 import { ScannerCardStream } from '@/components/ui/scanner-card-stream';
+import { useNarrowViewport } from '@/lib/interfaz/use-section-scroll-progress';
 
 type LibraryCardEntry = {
   product: BankProduct;
@@ -35,6 +36,7 @@ export function TxLibraryCardStack({
   onSelectAt,
   onDelete,
 }: TxLibraryCardStackProps) {
+  const isMobileShell = useNarrowViewport();
   const paletteIndices = useMemo(
     () => assignUniquePaletteIndices(cards.map(({ product }) => product.id)),
     [cards],
@@ -83,7 +85,7 @@ export function TxLibraryCardStack({
         prefersReducedMotion={prefersReducedMotion}
         quietMode
         cardWidthRatio={0.68}
-        cardHeightRatio={0.52}
+        cardHeightRatio={isMobileShell ? 0.68 : 0.52}
         maxCardWidth={288}
         renderCard={(entry, stackIndex, isFocused) => {
           const { product, intel } = entry;
