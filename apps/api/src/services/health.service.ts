@@ -80,13 +80,20 @@ export async function pingDatabase(): Promise<{
 
 export function getApprovalEmailCheck(): ReadinessChecks['approvalEmail'] {
   const config = getConfig();
-  if (config.RESEND_API_KEY?.trim()) {
-    return { status: 'ok' };
+  if (!config.RESEND_API_KEY?.trim()) {
+    return {
+      status: 'degraded',
+      detail: 'RESEND_API_KEY not configured; approval and notification emails are disabled',
+    };
   }
-  return {
-    status: 'degraded',
-    detail: 'RESEND_API_KEY not configured; approval request emails are disabled',
-  };
+  if (config.APPROVAL_EMAIL_FROM.includes('resend.dev')) {
+    return {
+      status: 'degraded',
+      detail:
+        'APPROVAL_EMAIL_FROM uses resend.dev sandbox; only the Resend account owner can receive user notifications',
+    };
+  }
+  return { status: 'ok' };
 }
 
 export async function pingArtifactStorage(): Promise<{

@@ -40,6 +40,7 @@ describe('health.service', () => {
 
   it('reports ok approval email when RESEND is configured', async () => {
     process.env.RESEND_API_KEY = 're_test_key';
+    process.env.APPROVAL_EMAIL_FROM = 'Financieramente <onboarding@financieramente.app>';
     vi.resetModules();
 
     const { getApprovalEmailCheck, getReadinessReport } = await import('./health.service');
@@ -49,5 +50,20 @@ describe('health.service', () => {
     const report = await getReadinessReport();
     expect(report.checks.approvalEmail.status).toBe('ok');
     expect(report.status).toBe('ok');
+  });
+
+  it('reports degraded approval email when FROM uses resend.dev sandbox', async () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+    process.env.APPROVAL_EMAIL_FROM = 'Financieramente <onboarding@resend.dev>';
+    vi.resetModules();
+
+    const { getApprovalEmailCheck, getReadinessReport } = await import('./health.service');
+
+    expect(getApprovalEmailCheck().status).toBe('degraded');
+    expect(getApprovalEmailCheck().detail).toContain('resend.dev');
+
+    const report = await getReadinessReport();
+    expect(report.checks.approvalEmail.status).toBe('degraded');
+    expect(report.status).toBe('degraded');
   });
 });

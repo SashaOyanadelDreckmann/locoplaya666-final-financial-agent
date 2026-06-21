@@ -69,6 +69,26 @@ function buildRejectUrl(token: string): string {
   return `${base}/auth/reject?token=${encodeURIComponent(token)}`;
 }
 
+function buildAppHomeUrl(): string {
+  const config = getConfig();
+  return `${config.WEB_ORIGIN.replace(/\/+$/, '')}/`;
+}
+
+const APPROVAL_CONFIRMATION_SENT_KEY = 'approvalConfirmationEmailSentAt';
+
+export type EmailDeliveryResult =
+  | { ok: true }
+  | { ok: false; skipped?: boolean; error: string };
+
+function isInternalTestEmail(email: string): boolean {
+  const normalized = normalizeEmail(email);
+  return (
+    normalized.endsWith('@financieramente.local') ||
+    normalized.endsWith('@financieramente.invalid') ||
+    normalized.startsWith('qa-')
+  );
+}
+
 export function createApprovalToken(input: {
   userId: string;
   adminEmail: string;
@@ -161,6 +181,49 @@ async function sendEmail(params: { to: string; subject: string; html: string }) 
   }
 }
 
+/** User-facing notifications must not roll back account state if Resend fails. */
+async function sendEmailSafe(params: {
+  to: string;
+  subject: string;
+  html: string;
+  context: string;
+}): Promise<EmailDeliveryResult> {
+  const config = getConfig();
+  const { getLogger } = await import('../logger');
+  const logger = getLogger();
+
+  if (!config.RESEND_API_KEY?.trim()) {
+    logger.warn({
+      msg: 'Skipping transactional email: RESEND_API_KEY not configured',
+      context: params.context,
+      to: params.to,
+      subject: params.subject,
+    });
+    return { ok: false, skipped: true, error: 'RESEND_API_KEY not configured' };
+  }
+
+  try {
+    await sendEmail(params);
+    logger.info({
+      msg: 'Transactional email sent',
+      context: params.context,
+      to: params.to,
+      subject: params.subject,
+    });
+    return { ok: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error({
+      msg: 'Transactional email failed',
+      context: params.context,
+      to: params.to,
+      subject: params.subject,
+      error,
+    });
+    return { ok: false, error: message };
+  }
+}
+
 export async function sendApprovalRequestEmail(params: {
   userId: string;
   userName: string;
@@ -198,23 +261,26 @@ export async function sendApprovalRequestEmail(params: {
 export async function sendApprovedNotificationEmail(params: {
   userEmail: string;
   userName: string;
-}) {
-  await sendEmail({
+}): Promise<EmailDeliveryResult> {
+  const loginUrl = buildAppHomeUrl();
+  return sendEmailSafe({
     to: params.userEmail,
     subject: 'Tu cuenta fue aprobada',
     html: `
       <h2>Tu cuenta ya está activa</h2>
       <p>Hola ${escapeHtml(params.userName)}, tu cuenta en Financieramente fue aprobada.</p>
       <p>Ya puedes iniciar sesión y continuar con tu diagnóstico.</p>
+      <p><a href="${escapeHtml(loginUrl)}">Iniciar sesión</a></p>
     `,
+    context: 'account-approved',
   });
 }
 
 export async function sendRejectedNotificationEmail(params: {
   userEmail: string;
   userName: string;
-}) {
-  await sendEmail({
+}): Promise<EmailDeliveryResult> {
+  return sendEmailSafe({
     to: params.userEmail,
     subject: 'Estado de tu solicitud',
     html: `
@@ -222,6 +288,7 @@ export async function sendRejectedNotificationEmail(params: {
       <p>Hola ${escapeHtml(params.userName)}, por ahora no pudimos aprobar tu cuenta.</p>
       <p>Si crees que fue un error, responde este correo para revisarlo.</p>
     `,
+    context: 'account-rejected',
   });
 }
 
@@ -341,10 +408,20 @@ export async function approveUserByAdmin(params: {
     throw badRequest('Failed to approve user');
   }
 
-  await sendApprovedNotificationEmail({
+  const emailResult = await sendApprovedNotificationEmail({
     userEmail: updated.email,
     userName: updated.name,
   });
+
+  if (emailResult.ok) {
+    const withFlag = await updateUserAuthSecurity(updated.id, {
+      memoryBlob: {
+        ...(updated.memoryBlob ?? {}),
+        [APPROVAL_CONFIRMATION_SENT_KEY]: new Date().toISOString(),
+      },
+    });
+    return { alreadyApproved: false, user: withFlag ?? updated };
+  }
 
   return { alreadyApproved: false, user: updated };
 }
@@ -377,4 +454,81 @@ export async function rejectUserByAdmin(params: {
   });
 
   return { alreadyRejected: false, user: updated };
+}
+
+export type ApprovalConfirmationBackfillReport = {
+  scanned: number;
+  sent: number;
+  skippedAlreadySent: number;
+  skippedInternal: number;
+  failed: number;
+  failures: Array<{ userId: string; email: string; error: string }>;
+};
+
+export async function resendPendingApprovalConfirmationEmails(): Promise<ApprovalConfirmationBackfillReport> {
+  const { getPrismaClient } = await import('../persistencia/provider');
+  const { USER_ROLES } = await import('../auth/rbac');
+  const prisma = await getPrismaClient();
+  const rows = await prisma.user.findMany({
+    where: {
+      approvalStatus: APPROVAL_STATUS.APPROVED,
+      role: USER_ROLES.USER,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      memoryBlob: true,
+    },
+  });
+
+  const report: ApprovalConfirmationBackfillReport = {
+    scanned: rows.length,
+    sent: 0,
+    skippedAlreadySent: 0,
+    skippedInternal: 0,
+    failed: 0,
+    failures: [],
+  };
+
+  for (const row of rows) {
+    if (isInternalTestEmail(row.email)) {
+      report.skippedInternal += 1;
+      continue;
+    }
+
+    const blob = (row.memoryBlob ?? null) as Record<string, unknown> | null;
+    if (typeof blob?.[APPROVAL_CONFIRMATION_SENT_KEY] === 'string') {
+      report.skippedAlreadySent += 1;
+      continue;
+    }
+
+    const result = await sendApprovedNotificationEmail({
+      userEmail: row.email,
+      userName: row.name,
+    });
+
+    if (result.ok) {
+      report.sent += 1;
+      await prisma.user.update({
+        where: { id: row.id },
+        data: {
+          memoryBlob: {
+            ...(blob ?? {}),
+            [APPROVAL_CONFIRMATION_SENT_KEY]: new Date().toISOString(),
+          },
+        },
+      });
+      continue;
+    }
+
+    report.failed += 1;
+    report.failures.push({
+      userId: row.id,
+      email: row.email,
+      error: result.error ?? 'Unknown error',
+    });
+  }
+
+  return report;
 }

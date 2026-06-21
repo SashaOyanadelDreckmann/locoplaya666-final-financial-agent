@@ -77,6 +77,7 @@ upsert "$API_SERVICE_NAME" CONTEXT_CONFLICT_UI_ENABLED "true"
 upsert "$API_SERVICE_NAME" FINANCIAL_CONTEXT_SHADOW_MODE "false"
 
 upsert "$API_SERVICE_NAME" APPROVAL_ADMIN_EMAIL "sasha.oyanadel@ug.uchile.cl"
+upsert "$API_SERVICE_NAME" APPROVAL_EMAIL_FROM "Financieramente <onboarding@financieramente.app>"
 upsert "$API_SERVICE_NAME" ENABLE_BOOTSTRAP_ADMIN_LOGIN "true"
 upsert "$API_SERVICE_NAME" BOOTSTRAP_ADMIN_EMAIL "admin@financieramente.local"
 upsert "$API_SERVICE_NAME" BOOTSTRAP_ADMIN_PASSWORD "Financieramente123!"

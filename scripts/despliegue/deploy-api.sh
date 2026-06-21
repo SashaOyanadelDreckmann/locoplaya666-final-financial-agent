@@ -63,5 +63,30 @@ wait_http_2xx "${API_BASE}/health/live" 24 5
 echo "==> Healthcheck readiness (${API_BASE}/health/ready)"
 wait_api_ready "${API_BASE}/health/ready" 24 5
 
+API_SERVICE_NAME="${RAILWAY_API_SERVICE_NAME:-locoplaya666-final-financial-agent}"
+echo "==> Backfill approval confirmation emails (idempotent)"
+API_VARS="$("$RAILWAY_BIN" variable list --project "$PROJECT" --environment "$ENVIRONMENT" --service "$API_SERVICE_NAME" --json 2>/dev/null || echo '{}')"
+DB_URL="$("$RAILWAY_BIN" variable list --project "$PROJECT" --environment "$ENVIRONMENT" --service Postgres --json 2>/dev/null | jq -r '.DATABASE_PUBLIC_URL // empty')"
+RESEND_KEY="$(echo "$API_VARS" | jq -r '.RESEND_API_KEY // empty')"
+WEB_ORIGIN_VAL="$(echo "$API_VARS" | jq -r '.WEB_ORIGIN // "https://financieramente.up.railway.app"')"
+EMAIL_FROM="$(echo "$API_VARS" | jq -r '.APPROVAL_EMAIL_FROM // "Financieramente <onboarding@financieramente.app>"')"
+APPROVAL_SECRET="$(echo "$API_VARS" | jq -r '.APPROVAL_LINK_SECRET // empty')"
+SESSION_SECRET="$(echo "$API_VARS" | jq -r '.SESSION_TOKEN_SECRET // empty')"
+
+if [ -n "$DB_URL" ] && [ -n "$RESEND_KEY" ] && [ -n "$APPROVAL_SECRET" ] && [ -n "$SESSION_SECRET" ]; then
+  DATABASE_URL="$DB_URL" \
+  RESEND_API_KEY="$RESEND_KEY" \
+  WEB_ORIGIN="$WEB_ORIGIN_VAL" \
+  APPROVAL_EMAIL_FROM="$EMAIL_FROM" \
+  APPROVAL_LINK_SECRET="$APPROVAL_SECRET" \
+  SESSION_TOKEN_SECRET="$SESSION_SECRET" \
+  NODE_ENV=production \
+    pnpm exec tsx scripts/qa/resend-approved-account-emails.ts || {
+      echo "WARN: approval confirmation email backfill reported failures"
+    }
+else
+  echo "WARN: skip approval email backfill (missing DATABASE_URL, RESEND_API_KEY, or secrets)"
+fi
+
 echo "==> Deploy API OK"
 exit 0

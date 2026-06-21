@@ -254,6 +254,7 @@ export function formatConfigSummary(config: Config): string {
     `  Persistence: ${config.DATABASE_URL ? 'postgres' : 'memory'}`,
     `  Dev Injection: ${config.ENABLE_DEV_INJECTION ? '🔓 ENABLED' : '🔒 disabled'}`,
     `  Approval Email: ${config.RESEND_API_KEY?.trim() ? '✅ Resend configured' : '⚠️  RESEND_API_KEY missing'}`,
+    `  Approval From: ${config.APPROVAL_EMAIL_FROM}`,
     `  Approval Links: ${config.APPROVAL_LINK_BASE_URL}`,
   ];
 
@@ -263,6 +264,12 @@ export function formatConfigSummary(config: Config): string {
 
   if (config.NODE_ENV === 'production' && !config.RESEND_API_KEY?.trim()) {
     lines.push('  ⚠️  WARNING: Approval emails disabled — manual approval required');
+  }
+
+  if (config.NODE_ENV === 'production' && config.APPROVAL_EMAIL_FROM.includes('resend.dev')) {
+    lines.push(
+      '  ⚠️  WARNING: APPROVAL_EMAIL_FROM uses resend.dev — user approval emails will not reach registrants',
+    );
   }
 
   lines.push('━'.repeat(60));

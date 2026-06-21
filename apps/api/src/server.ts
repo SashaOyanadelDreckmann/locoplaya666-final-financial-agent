@@ -51,8 +51,16 @@ async function startServer(): Promise<void> {
 
   if (config.NODE_ENV === 'production' && !config.RESEND_API_KEY?.trim()) {
     logger.warn({
-      msg: 'RESEND_API_KEY is not configured — new user registrations will not send approval emails to admin',
-      impact: 'Users remain in PENDING_APPROVAL until manually approved',
+      msg: 'RESEND_API_KEY is not configured — approval and notification emails are disabled',
+      impact: 'Users remain in PENDING_APPROVAL until manually approved; approved users will not receive email',
+    });
+  }
+
+  if (config.NODE_ENV === 'production' && config.APPROVAL_EMAIL_FROM.includes('resend.dev')) {
+    logger.warn({
+      msg: 'APPROVAL_EMAIL_FROM uses resend.dev sandbox — user notification emails will not reach registrants',
+      from: config.APPROVAL_EMAIL_FROM,
+      fix: 'Set APPROVAL_EMAIL_FROM to a verified domain, e.g. Financieramente <onboarding@financieramente.app>',
     });
   }
 

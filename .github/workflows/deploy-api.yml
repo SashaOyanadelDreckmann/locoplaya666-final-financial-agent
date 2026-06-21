@@ -8,9 +8,11 @@ on:
     paths:
       - "apps/api/**"
       - "packages/shared/**"
+      - "scripts/despliegue/deploy-api.sh"
       - "scripts/despliegue/sync-railway-production-vars.sh"
       - "scripts/despliegue/lib/**"
       - "scripts/qa/prod-smoke.mjs"
+      - "scripts/qa/resend-approved-account-emails.ts"
       - "Dockerfile.api"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
