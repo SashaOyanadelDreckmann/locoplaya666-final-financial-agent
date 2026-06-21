@@ -465,6 +465,12 @@ export type ApprovalConfirmationBackfillReport = {
   failures: Array<{ userId: string; email: string; error: string }>;
 };
 
+const BACKFILL_EMAIL_DELAY_MS = 250;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function resendPendingApprovalConfirmationEmails(): Promise<ApprovalConfirmationBackfillReport> {
   const { getPrismaClient } = await import('../persistencia/provider');
   const { USER_ROLES } = await import('../auth/rbac');
@@ -519,6 +525,7 @@ export async function resendPendingApprovalConfirmationEmails(): Promise<Approva
           },
         },
       });
+      await sleep(BACKFILL_EMAIL_DELAY_MS);
       continue;
     }
 
@@ -528,6 +535,8 @@ export async function resendPendingApprovalConfirmationEmails(): Promise<Approva
       email: row.email,
       error: result.error ?? 'Unknown error',
     });
+
+    await sleep(BACKFILL_EMAIL_DELAY_MS);
   }
 
   return report;
