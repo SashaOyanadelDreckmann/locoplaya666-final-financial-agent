@@ -258,7 +258,7 @@ describe('product lifecycle ordering', () => {
         productLifecycle: {
           phase: 'diagnosis_ready',
           unlockedChats: ['chat-1', 'chat-2', 'chat-3'],
-          chatTurns: { 'chat-1': 0, 'chat-2': 14, 'chat-3': 0 },
+          chatTurns: { 'chat-1': 0, 'chat-2': 10, 'chat-3': 0 },
           closedChats: [],
           reports: [],
         },
@@ -267,7 +267,7 @@ describe('product lifecycle ordering', () => {
     });
 
     expect(decision.closingMode).toBe(true);
-    expect(decision.systemDirective).toContain('10/15');
+    expect(decision.systemDirective).toContain('7/12');
   });
 
   it('aligns chat-3 directive to social consciousness funnel', () => {
@@ -315,7 +315,7 @@ describe('product lifecycle ordering', () => {
         productLifecycle: {
           phase: 'diagnosis_ready',
           unlockedChats: ['chat-1', 'chat-2', 'chat-3'],
-          chatTurns: { 'chat-1': 0, 'chat-2': 15, 'chat-3': 0 },
+          chatTurns: { 'chat-1': 0, 'chat-2': 12, 'chat-3': 0 },
           closedChats: [],
           reports: [],
         },
@@ -324,7 +324,7 @@ describe('product lifecycle ordering', () => {
     });
 
     expect(decision.blocked).toBe(true);
-    expect(decision.reason).toContain('15');
+    expect(decision.reason).toContain('12');
   });
 
   it('closes chat and appends report after the final interaction response', () => {

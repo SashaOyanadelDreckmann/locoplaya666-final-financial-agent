@@ -479,13 +479,18 @@ function buildSystemDirective(params: {
         userMessage: params.userMessage,
       }) ?? 'brainstorm';
     base.push(
-      'CHAT 2 PLAN DE ACCION: embudo conversacional — lluvia de ideas → convergencia → plan final estructurado.',
-      'CHAT 2 GENERAL: responde primero la pregunta, duda u objecion del usuario; luego avanza la etapa del embudo.',
-      'Usa diagnostico, presupuesto, cartolas, intake, mercado vivo y regulacion cuando aporte.',
-      'Ancla cada recomendacion a evidencia verificada; si falta un dato, dilo explicitamente en lugar de inferir.',
+      'CHAT 2 PLAN DE ACCION: embudo conversacional — lluvia de ideas → convergencia → plan final (ultimas 2 interacciones).',
+      'CHAT 2 GENERAL: responde primero la pregunta; breve, preciso, justificado con evidencia verificable del usuario.',
+      'Cada recomendacion: accion → porque [dato del presupuesto/cartola/diagnostico] → impacto; sin relleno ni repetir el hilo.',
+      'En brainstorm/convergencia: max ~120-150 palabras, 1 pregunta de cierre.',
       'No ofrezcas correos, recordatorios externos ni automatizaciones fuera del chat.',
       buildActionPlanFunnelDirective(funnelStage),
     );
+    if (params.closingMode && funnelStage === 'converge') {
+      base.push(
+        'CIERRE PROGRESIVO: sintetiza acuerdos del hilo y valida 1 decision pendiente; NO emitas aun el documento ejecutivo completo.',
+      );
+    }
   }
 
   if (params.activeChatId === 'chat-3') {

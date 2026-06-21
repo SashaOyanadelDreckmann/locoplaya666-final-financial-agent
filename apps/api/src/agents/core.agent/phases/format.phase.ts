@@ -312,16 +312,19 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       activeChatId === 'chat-2'
         ? [
             'CHAT 2 — ESTANDAR PREMIUM:',
-            '- Responde primero lo concreto que el usuario escribio o pregunto en este turno; no lo ignores.',
-            '- Tono wealth advisory Chile: preciso, sobrio, sin hype ni promesas de rentabilidad.',
-            '- Ancla cada hipotesis a diagnostico, presupuesto, cartolas o mercado verificable.',
-            '- Si falta evidencia numerica, declara el vacio; no completes con supuestos.',
+            '- Responde primero lo concreto del turno; justifica con evidencia verificable; sin relleno.',
+            '- Tono wealth advisory Chile: preciso, sobrio, directo — cada bullet con dato o vacio declarado.',
             funnelStage === 'deliver'
-              ? '- ENTREGA FINAL: cada seccion ## con contenido denso, plazos concretos y metricas trazables o marcadas como pendientes de validar.'
+              ? '- ENTREGA FINAL: secciones ## densas; cifras del usuario o vacios explicitos; plazos concretos.'
               : funnelStage === 'converge'
-                ? '- CONVERGENCIA: sintetiza la prioridad del usuario antes de recomendar una ruta tentativa.'
-                : '- EXPLORACION: abre con hipotesis accionables; no entregues aun el plan estructurado completo.',
-          ].join('\n')
+                ? '- CONVERGENCIA: max ~150 palabras; 2 rutas con trade-off anclado al caso + 1 pregunta nueva.'
+                : '- EXPLORACION: max ~120 palabras; 3 hipotesis con evidencia + 1 pregunta nueva.',
+            funnelStage !== 'deliver'
+              ? '- SUGERENCIAS: 3-4 chips que sean respuestas naturales a TU pregunta de cierre; no genericas del embudo.'
+              : '',
+          ]
+            .filter(Boolean)
+            .join('\n')
         : '';
 
     const chat3PremiumRules =

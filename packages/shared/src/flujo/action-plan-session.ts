@@ -108,7 +108,8 @@ export function buildActionPlanSessionBrief(params: {
     userPriorities.length > 0
       ? `Prioridades/expresadas por el usuario en este hilo:\n- ${userPriorities.join('\n- ')}`
       : null,
-    'Mantén coherencia con este brief y el hilo; no reinicies el plan ni contradigas acuerdos previos.',
+    'Mantén coherencia con este brief y el hilo; no reinicies el plan, no repitas preguntas ni hipotesis ya cubiertas.',
+    'Justifica cada recomendacion con evidencia del brief o del hilo; si falta un dato, dilo antes de recomendar.',
   ].filter(Boolean);
 
   return parts.join('\n');

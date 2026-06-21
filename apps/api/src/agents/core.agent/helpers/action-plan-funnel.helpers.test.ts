@@ -18,13 +18,19 @@ describe('resolveActionPlanFunnelStage', () => {
 
   it('moves to converge after early turns', () => {
     expect(
-      resolveActionPlanFunnelStage({ activeChatId: 'chat-2', turnCount: 8, closingMode: false }),
+      resolveActionPlanFunnelStage({ activeChatId: 'chat-2', turnCount: 5, closingMode: false }),
     ).toBe('converge');
   });
 
-  it('enters deliver in closing mode', () => {
+  it('enters deliver only in last 2 turns or on explicit request', () => {
     expect(
-      resolveActionPlanFunnelStage({ activeChatId: 'chat-2', turnCount: 8, closingMode: true }),
+      resolveActionPlanFunnelStage({ activeChatId: 'chat-2', turnCount: 6, closingMode: true }),
+    ).toBe('converge');
+    expect(
+      resolveActionPlanFunnelStage({ activeChatId: 'chat-2', turnCount: 9, closingMode: true }),
+    ).toBe('converge');
+    expect(
+      resolveActionPlanFunnelStage({ activeChatId: 'chat-2', turnCount: 10, closingMode: true }),
     ).toBe('deliver');
   });
 

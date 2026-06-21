@@ -48,7 +48,7 @@ describe('chat lifecycle helpers', () => {
         chatId: 'chat-2',
         unlockedChatIds: ['chat-1', 'chat-2', 'chat-3'],
         closedChatIds: ['chat-2'],
-        chatTurns: { 'chat-2': 15 },
+        chatTurns: { 'chat-2': 12 },
         lifecycleLoaded: true,
       }),
     ).toBe('closed');

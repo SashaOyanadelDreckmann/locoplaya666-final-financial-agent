@@ -2,8 +2,18 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTurnContextActionPlanReplies,
   buildTurnContextSocialConsciousnessReplies,
+  extractAssistantAlignedReplies,
   mergeFunnelSuggestedReplies,
 } from '../../flujo/funnel-suggested-replies';
+
+describe('extractAssistantAlignedReplies', () => {
+  it('extracts closing questions from assistant message', () => {
+    const replies = extractAssistantAlignedReplies(
+      'Priorizo liquidez este mes.\n\n¿Prefieres atacar la tarjeta o armar colchón primero?',
+    );
+    expect(replies[0]).toMatch(/tarjeta|colchón/i);
+  });
+});
 
 describe('buildTurnContextActionPlanReplies', () => {
   it('derives debt-focused chips from user message', () => {
@@ -66,5 +76,30 @@ describe('mergeFunnelSuggestedReplies', () => {
 
     const keys = merged.map((r) => r.toLowerCase());
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('prefers assistant-aligned chips over generic funnel defaults', () => {
+    const merged = mergeFunnelSuggestedReplies({
+      activeChatId: 'chat-2',
+      turnCount: 2,
+      userMessage: 'Tengo deuda de consumo',
+      assistantMessage: '¿Pagamos tarjeta antes que ahorrar?',
+      modelSuggestedReplies: ['Pagar tarjeta primero', 'Ahorrar en paralelo'],
+    });
+
+    expect(merged.some((chip) => /tarjeta|ahorrar/i.test(chip))).toBe(true);
+    expect(merged.length).toBeLessThanOrEqual(4);
+  });
+
+  it('filters chips that repeat recent assistant questions', () => {
+    const merged = mergeFunnelSuggestedReplies({
+      activeChatId: 'chat-2',
+      turnCount: 3,
+      userMessage: 'Sigamos',
+      assistantMessage: '¿Validamos la ruta tentativa?',
+      recentSuggestedReplies: ['¿Validamos la ruta tentativa?'],
+    });
+
+    expect(merged.some((chip) => /validamos la ruta tentativa/i.test(chip))).toBe(false);
   });
 });

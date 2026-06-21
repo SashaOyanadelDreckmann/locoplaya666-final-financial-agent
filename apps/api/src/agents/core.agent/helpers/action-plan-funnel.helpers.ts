@@ -1,6 +1,9 @@
 import {
   ACTION_PLAN_DELIVER_SECTIONS,
   FUNNEL_ANSWER_USER_FIRST_DIRECTIVE,
+  FUNNEL_ANTI_REPETITION_DIRECTIVE,
+  FUNNEL_CONCISENESS_DIRECTIVE,
+  FUNNEL_EVIDENCE_JUSTIFICATION_DIRECTIVE,
   type ActionPlanFunnelStage,
 } from '@financial-agent/shared';
 
@@ -12,6 +15,7 @@ export {
   enforceDeliverPlanStructure,
   funnelStageLabel,
   funnelStageStepIndex,
+  getActionPlanFullDeliverFrom,
   maxTurnsForChat,
   resolveActionPlanFunnelStage,
   type ActionPlanFunnelStage,
@@ -25,67 +29,75 @@ export function buildActionPlanFunnelDirective(stage: ActionPlanFunnelStage): st
         ? buildActionPlanConvergeDirective()
         : buildActionPlanDeliverDirective();
 
-  return [FUNNEL_ANSWER_USER_FIRST_DIRECTIVE, stageBody].join('\n');
+  return [
+    FUNNEL_ANSWER_USER_FIRST_DIRECTIVE,
+    FUNNEL_EVIDENCE_JUSTIFICATION_DIRECTIVE,
+    FUNNEL_CONCISENESS_DIRECTIVE,
+    FUNNEL_ANTI_REPETITION_DIRECTIVE,
+    stageBody,
+  ].join('\n');
 }
 
 function buildActionPlanBrainstormDirective(): string {
   return [
-      'ETAPA EMBUDO — LLUVIA DE IDEAS (inicio):',
-      '- Parte del diagnostico, presupuesto, cartolas, intake y mercado vivo del dia.',
-      '- Abre con 4-7 hipotesis accionables (bullets), cada una con "por que importa" en una linea.',
-      '- Cruza señal de mercado solo como contexto verificable, sin especular.',
-      '- Cierra con 1-2 preguntas de alto impacto (prioridad, horizonte, riesgo).',
-      '- No entregues aun el plan final estructurado ni prometas rentabilidades.',
-    ].join('\n');
+    'ETAPA EMBUDO — LLUVIA DE IDEAS (inicio):',
+    '- Maximo ~120 palabras en total.',
+    '- 3 hipotesis accionables (1 linea cada una): accion → evidencia concreta del usuario → por que importa ahora.',
+    '- Usa cifras del presupuesto/cartola/diagnostico cuando existan; si no, marca el vacio en 1 frase.',
+    '- Mercado vivo: 1 dato maximo y solo si cambia la decision del turno (con fuente breve).',
+    '- Cierra con UNA pregunta concreta de alto impacto (prioridad, horizonte o riesgo).',
+    '- No entregues plan final ni prometas rentabilidades.',
+  ].join('\n');
 }
 
 function buildActionPlanConvergeDirective(): string {
   return [
-      'ETAPA EMBUDO — CONVERGENCIA (medio):',
-      '- Resume en 2 lineas lo que el usuario acaba de priorizar.',
-      '- Presenta 2-3 rutas viables con trade-off explicito (caja, deuda, ahorro, inversion).',
-      '- Recomienda una ruta tentativa con criterio senior y nivel de conviccion moderado.',
-      '- Pide validacion de un solo punto critico antes del cierre.',
-      '- No cierres con el informe final completo salvo peticion explicita del usuario.',
-    ].join('\n');
+    'ETAPA EMBUDO — CONVERGENCIA (medio):',
+    '- Maximo ~150 palabras en total.',
+    '- 1 linea: prioridad que el usuario acabo de expresar, citando su evidencia (monto, plazo o tension).',
+    '- 2 rutas viables: cada una con trade-off explicito anclado a caja/deuda/ahorro/inversion del caso.',
+    '- 1 linea: recomendacion tentativa con razon verificable (no opinion generica).',
+    '- UNA pregunta de validacion sobre el punto critico; no repitas preguntas del hilo.',
+    '- No emitas el documento ejecutivo completo salvo peticion explicita o ultimas 2 interacciones.',
+  ].join('\n');
 }
 
 function buildActionPlanDeliverDirective(): string {
   return [
     'ETAPA EMBUDO — ENTREGA FINAL (cierre ejecutivo):',
-    '- Este mensaje DEBE ser el plan de accion profesional completo, personalizado y listo para ejecutar.',
+    '- Solo en las ultimas 2 interacciones o cuando el usuario pida el plan final.',
+    '- Plan profesional completo, personalizado y ejecutable; cada seccion con datos del usuario o vacios declarados.',
     '- Estructura OBLIGATORIA (markdown, en este orden, con contenido sustantivo en cada seccion):',
     ...ACTION_PLAN_DELIVER_SECTIONS.map((s) => `  ${s}`),
-    '- En Prioridades y Secuencia usa numeracion, plazos (semana/mes/trimestre) y responsable (usuario).',
-    '- En Trade-offs explicita que NO se recomienda si aplica (suitability).',
-    '- Si falta un dato verificado, declara el vacio; no inventes cifras ni escenarios.',
-    '- Tono: analista senior de wealth advisory en Chile; preciso, sobrio, sin hype.',
+    '- En Prioridades y Secuencia: numeracion, plazos (semana/mes/trimestre), responsable (usuario) y cifra cuando exista.',
+    '- En Trade-offs: que NO se recomienda y por que (suitability), con evidencia del caso.',
+    '- Tono: analista senior wealth advisory Chile; preciso, sobrio, sin hype.',
     '- La decision final ejecutable depende 100% del usuario.',
   ].join('\n');
 }
 
 export function buildActionPlanFormatInstructions(stage: ActionPlanFunnelStage): string {
   const userFirst =
-    'Responde primero lo que el usuario escribio o pregunto en este turno; luego sigue la etapa.';
+    'Responde primero lo que el usuario escribio o pregunto; justifica con evidencia verificable; sin relleno.';
 
   if (stage === 'brainstorm') {
     return [
       'Chat 2 — Plan de accion | ETAPA 1/3 LLUVIA DE IDEAS.',
       userFirst,
-      'Hipotesis ancladas a perfil + mercado vivo; bullets; 1-2 preguntas; sin plan final.',
+      'Max ~120 palabras: 3 bullets con evidencia + 1 pregunta. SUGERENCIAS = respuestas a tu pregunta.',
     ].join(' ');
   }
   if (stage === 'converge') {
     return [
       'Chat 2 — Plan de accion | ETAPA 2/3 CONVERGENCIA.',
       userFirst,
-      'Sintetiza prioridad del usuario; 2-3 rutas con trade-offs; recomendacion tentativa; 1 pregunta de cierre.',
+      'Max ~150 palabras: prioridad + 2 rutas justificadas + 1 pregunta. SUGERENCIAS alineadas.',
     ].join(' ');
   }
   return [
     'Chat 2 — Plan de accion | ETAPA 3/3 PLAN EJECUTIVO FINAL.',
     userFirst,
-    'Documento completo con todas las secciones ## obligatorias, contenido denso y personalizado.',
+    'Documento completo con secciones ##; cada bloque con datos del usuario o vacio explicito.',
     'Sin correos ni recordatorios externos.',
   ].join(' ');
 }

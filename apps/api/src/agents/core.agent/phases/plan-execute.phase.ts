@@ -726,7 +726,9 @@ ${
   chat2Mode || chat3Mode
     ? `Prioridad de turno:
 - Responde primero lo concreto que el usuario escribio o pregunto en este mensaje.
-- Luego recopila evidencia o reflexion segun la etapa del embudo; no ignores su pregunta.`
+- Justifica con evidencia verificable (presupuesto, cartola, diagnostico); declara vacios, no inventes cifras.
+- Se breve: sin relleno ni repetir hipotesis o preguntas del hilo.
+- Luego recopila evidencia segun la etapa del embudo.`
     : ''
 }
 

@@ -10,8 +10,8 @@ import {
 } from './social-consciousness-funnel';
 
 const MAX_SUGGESTIONS = 4;
-const MAX_CONTEXTUAL = 2;
-const MAX_FUNNEL = 2;
+const MAX_CONTEXTUAL = 3;
+const MAX_FUNNEL = 1;
 const MAX_WORDS_PER_CHIP = 7;
 
 function normalizeSuggestionKey(text: string): string {
@@ -49,6 +49,33 @@ function mergeUniqueSuggestions(candidates: string[], max: number): string[] {
   }
 
   return out;
+}
+
+function filterRecentSuggestions(candidates: string[], recent?: string[]): string[] {
+  if (!recent?.length) return candidates;
+  const recentKeys = new Set(recent.map((entry) => normalizeSuggestionKey(entry)));
+  return candidates.filter((entry) => !recentKeys.has(normalizeSuggestionKey(entry)));
+}
+
+export function extractAssistantAlignedReplies(assistantMessage?: string): string[] {
+  const text = String(assistantMessage ?? '').trim();
+  if (!text) return [];
+
+  const questions = text
+    .split(/\n+/)
+    .flatMap((line) => line.match(/[^.?!\n]*\?/g) ?? [])
+    .map((question) =>
+      question
+        .trim()
+        .replace(/^[-*•]\s*/, '')
+        .replace(/^#+\s*/, ''),
+    )
+    .filter((question) => question.length > 10);
+
+  return mergeUniqueSuggestions(
+    questions.slice(-2).map((question) => clipSuggestion(question)),
+    2,
+  );
 }
 
 export function buildTurnContextActionPlanReplies(userMessage?: string): string[] {
@@ -148,7 +175,7 @@ function resolveFunnelStageReplies(params: {
         closingMode: params.closingMode,
         userMessage: params.userMessage,
       }) ?? ('brainstorm' satisfies ActionPlanFunnelStage);
-    return buildActionPlanSuggestedReplies(stage);
+    return buildActionPlanSuggestedReplies(stage, params.turnCount ?? 0);
   }
 
   const stage =
@@ -168,24 +195,39 @@ export function mergeFunnelSuggestedReplies(params: {
   userMessage?: string;
   assistantMessage?: string;
   modelSuggestedReplies?: string[];
+  recentSuggestedReplies?: string[];
 }): string[] {
-  void params.assistantMessage;
-
   const funnelDefaults = resolveFunnelStageReplies(params);
+  const assistantAligned = extractAssistantAlignedReplies(params.assistantMessage);
   const turnContext =
     params.activeChatId === 'chat-2'
       ? buildTurnContextActionPlanReplies(params.userMessage)
       : buildTurnContextSocialConsciousnessReplies(params.userMessage);
 
-  const contextual = mergeUniqueSuggestions(
-    [...(params.modelSuggestedReplies ?? []), ...turnContext],
-    MAX_CONTEXTUAL,
+  const contextual = filterRecentSuggestions(
+    mergeUniqueSuggestions(
+      [
+        ...(params.modelSuggestedReplies ?? []),
+        ...assistantAligned,
+        ...turnContext,
+      ],
+      MAX_CONTEXTUAL,
+    ),
+    params.recentSuggestedReplies,
   );
-  const funnel = mergeUniqueSuggestions(funnelDefaults, MAX_FUNNEL);
+
+  const funnelCap = contextual.length >= 2 ? MAX_FUNNEL : 2;
+  const funnel = filterRecentSuggestions(
+    mergeUniqueSuggestions(funnelDefaults, funnelCap),
+    params.recentSuggestedReplies,
+  );
 
   const merged = mergeUniqueSuggestions([...contextual, ...funnel], MAX_SUGGESTIONS);
 
   if (merged.length >= 3) return merged;
 
-  return mergeUniqueSuggestions([...merged, ...funnelDefaults], MAX_SUGGESTIONS);
+  return mergeUniqueSuggestions(
+    filterRecentSuggestions([...merged, ...funnelDefaults], params.recentSuggestedReplies),
+    MAX_SUGGESTIONS,
+  );
 }

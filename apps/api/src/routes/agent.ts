@@ -39,6 +39,7 @@ import { resolveAgentConversationHistory } from '../agents/core.agent/helpers/co
 import { complete, runWithLLMCostTracking } from '../services/llm.service';
 import {
   buildSocialConsciousnessFallbackMessage,
+  extractAssistantAlignedReplies,
   mergeFunnelSuggestedReplies,
 } from '@financial-agent/shared';
 import {
@@ -392,6 +393,16 @@ function buildBlockedPanelAction(activeChatId: string) {
   };
 }
 
+function collectRecentSuggestedRepliesFromHistory(history: unknown): string[] {
+  const assistantMessages = (Array.isArray(history) ? history : [])
+    .filter((entry) => entry && typeof entry === 'object' && (entry as Record<string, unknown>).role === 'assistant')
+    .map((entry) => String((entry as Record<string, unknown>).content ?? ''))
+    .filter((content) => content.trim().length > 0)
+    .slice(-2);
+
+  return assistantMessages.flatMap((message) => extractAssistantAlignedReplies(message));
+}
+
 function buildContextualSuggestedReplies(params: {
   phase?: unknown;
   activeChatId?: unknown;
@@ -402,6 +413,7 @@ function buildContextualSuggestedReplies(params: {
   userMessage?: string;
   assistantMessage?: string;
   modelSuggestedReplies?: string[];
+  recentSuggestedReplies?: string[];
 }) {
   const phase = String(params.phase ?? '');
   const activeChatId = String(params.activeChatId ?? 'chat-1');
@@ -413,6 +425,7 @@ function buildContextualSuggestedReplies(params: {
       userMessage: params.userMessage,
       assistantMessage: params.assistantMessage,
       modelSuggestedReplies: params.modelSuggestedReplies,
+      recentSuggestedReplies: params.recentSuggestedReplies,
     });
   }
   if (activeChatId === 'chat-3') {
@@ -423,6 +436,7 @@ function buildContextualSuggestedReplies(params: {
       userMessage: params.userMessage,
       assistantMessage: params.assistantMessage,
       modelSuggestedReplies: params.modelSuggestedReplies,
+      recentSuggestedReplies: params.recentSuggestedReplies,
     });
   }
   if (params.hasBudget && params.hasTransactions) return ['Abrir entrevista breve', 'Revisar presupuesto', 'Ver cartola'];
@@ -441,9 +455,16 @@ function buildLifecycleSuggestedReplies(params: {
   userMessage?: string;
   assistantMessage?: string;
   modelSuggestedReplies?: string[];
+  recentSuggestedReplies?: string[];
 }) {
-  const { lifecycleDecision, onboardingSignals, userMessage, assistantMessage, modelSuggestedReplies } =
-    params;
+  const {
+    lifecycleDecision,
+    onboardingSignals,
+    userMessage,
+    assistantMessage,
+    modelSuggestedReplies,
+    recentSuggestedReplies,
+  } = params;
   return buildContextualSuggestedReplies({
     phase: lifecycleDecision.state.phase,
     activeChatId: lifecycleDecision.activeChatId,
@@ -454,6 +475,7 @@ function buildLifecycleSuggestedReplies(params: {
     userMessage,
     assistantMessage,
     modelSuggestedReplies,
+    recentSuggestedReplies,
   });
 }
 
@@ -1918,6 +1940,7 @@ router.post(
       .map((h) => String((h as Record<string, unknown>).content ?? ''))
       .filter((x) => x.trim().length > 0)
       .slice(-2);
+    const recentSuggestedReplies = collectRecentSuggestedRepliesFromHistory(input.history);
     if (shouldReplaceWithDuplicateFallback({ response, recentAssistantMessages })) {
       response.message = buildResilientFallbackMessage({
         userMessage: String(input.user_message ?? ''),
@@ -1930,6 +1953,7 @@ router.post(
         lifecycleDecision,
         onboardingSignals,
         userMessage: String(input.user_message ?? ''),
+        recentSuggestedReplies,
       });
     }
 
@@ -1945,6 +1969,7 @@ router.post(
         modelSuggestedReplies: Array.isArray(response.suggested_replies)
           ? response.suggested_replies
           : [],
+        recentSuggestedReplies,
       });
     }
 

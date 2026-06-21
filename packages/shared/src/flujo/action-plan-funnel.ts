@@ -31,13 +31,15 @@ export function resolveActionPlanFunnelStage(params: {
   }
 
   const turn = Math.max(0, Math.floor(Number(params.turnCount ?? 0)));
-  const closingTurn = getClosingModeTurn('chat-2');
-  const closing = Boolean(params.closingMode) || turn >= closingTurn;
-  const deliverFrom = Math.max(closingTurn, getMaxChatTurns('chat-2') - 3);
+  const fullDeliverFrom = getActionPlanFullDeliverFrom();
 
-  if (closing || turn >= deliverFrom) return 'deliver';
+  if (turn >= fullDeliverFrom) return 'deliver';
   if (turn <= 3) return 'brainstorm';
   return 'converge';
+}
+
+export function getActionPlanFullDeliverFrom(): number {
+  return Math.max(0, getMaxChatTurns('chat-2') - 2);
 }
 
 export function funnelStageLabel(stage: ActionPlanFunnelStage): string {
@@ -83,15 +85,38 @@ export function enforceDeliverPlanStructure(message: string): string {
 export function buildClosingModeDirective(chatId: ProductChatId): string {
   const closingTurn = getClosingModeTurn(chatId);
   const maxTurns = getMaxChatTurns(chatId);
+  if (chatId === 'chat-2') {
+    const fullDeliverFrom = getActionPlanFullDeliverFrom();
+    return [
+      `MODO CIERRE: desde la interaccion ${closingTurn + 1}/${maxTurns} conduce hacia conclusion util.`,
+      `Plan ejecutivo completo (secciones ##) solo en interacciones ${fullDeliverFrom + 1}-${maxTurns} o si el usuario lo pide.`,
+      'Hasta entonces: convergencia breve con acuerdos, trade-offs y 1 pregunta; no repitas el plan completo.',
+    ].join(' ');
+  }
   return `MODO CIERRE: desde la interaccion ${closingTurn + 1}/${maxTurns} debes conducir la conversacion hacia una conclusion util, concreta y documentable.`;
 }
 
-export function buildActionPlanSuggestedReplies(stage: ActionPlanFunnelStage): string[] {
+export function buildActionPlanSuggestedReplies(
+  stage: ActionPlanFunnelStage,
+  turnCount = 0,
+): string[] {
+  const variant = Math.max(0, Math.floor(turnCount / 2)) % 3;
+
   if (stage === 'brainstorm') {
-    return ['Priorizar liquidez', 'Explorar deuda', 'Simular ahorro'];
+    const sets = [
+      ['Priorizar liquidez', 'Explorar deuda', 'Simular ahorro'],
+      ['Ordenar vencimientos', 'Medir margen mensual', 'Armar colchon'],
+      ['Revisar caja vs deuda', 'Definir horizonte', 'Comparar rutas'],
+    ];
+    return sets[variant] ?? sets[0];
   }
   if (stage === 'converge') {
-    return ['Validar ruta tentativa', 'Comparar trade-offs', 'Cerrar plan ejecutivo'];
+    const sets = [
+      ['Validar ruta tentativa', 'Comparar trade-offs', 'Cerrar plan ejecutivo'],
+      ['Ajustar prioridad del mes', 'Ver impacto en caja', 'Pedir plan final'],
+      ['Profundizar trade-off clave', 'Elegir secuencia', 'Confirmar siguiente paso'],
+    ];
+    return sets[variant] ?? sets[0];
   }
   return ['Profundizar prioridades', 'Ajustar secuencia', 'Guardar en biblioteca'];
 }
