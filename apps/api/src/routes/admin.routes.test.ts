@@ -43,6 +43,8 @@ beforeAll(() => {
   process.env.APPROVAL_LINK_BASE_URL = 'http://localhost:3001';
   process.env.APPROVAL_ADMIN_EMAIL = 'sasha.oyanadel@ug.uchile.cl';
   process.env.ENABLE_BOOTSTRAP_ADMIN_LOGIN = 'true';
+  process.env.BOOTSTRAP_ADMIN_EMAIL = 'admin@financieramente.local';
+  process.env.BOOTSTRAP_ADMIN_PASSWORD = 'Financieramente123!';
   process.env.ADMIN_RATE_LIMIT_MAX = '500';
   process.env.AUTH_RATE_LIMIT_MAX = '200';
 });

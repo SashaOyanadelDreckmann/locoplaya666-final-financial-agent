@@ -58,17 +58,22 @@ function normalizeEmail(email: string): string {
 
 function canBootstrapAdminFromLogin(): boolean {
   const flag = process.env.ENABLE_BOOTSTRAP_ADMIN_LOGIN?.trim().toLowerCase();
-  if (flag === 'false' || flag === '0' || flag === 'no') return false;
-  if (process.env.NODE_ENV === 'production') {
-    return flag === 'true' || flag === '1' || flag === 'yes';
-  }
-  return true;
+  const enabled = flag === 'true' || flag === '1' || flag === 'yes';
+  if (!enabled) return false;
+  if (process.env.NODE_ENV === 'production') return false;
+  return Boolean(
+    process.env.BOOTSTRAP_ADMIN_EMAIL?.trim() && process.env.BOOTSTRAP_ADMIN_PASSWORD?.trim(),
+  );
 }
 
 function getBootstrapAdminCredentials() {
+  const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim();
+  const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  if (!email || !password) return null;
+
   return {
-    email: normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL || 'admin@financieramente.local'),
-    password: process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Financieramente123!',
+    email: normalizeEmail(email),
+    password,
     name: (process.env.BOOTSTRAP_ADMIN_NAME ?? 'Administrador').trim() || 'Administrador',
   };
 }
@@ -93,7 +98,10 @@ async function ensureBootstrapAdminForCredentials(params: {
 }) {
   if (!canBootstrapAdminFromLogin()) return;
 
-  const { email: adminEmail, password: adminPassword, name: adminName } = getBootstrapAdminCredentials();
+  const credentials = getBootstrapAdminCredentials();
+  if (!credentials) return;
+
+  const { email: adminEmail, password: adminPassword, name: adminName } = credentials;
 
   if (!adminEmail || !adminPassword) return;
   if (normalizeEmail(params.email) !== adminEmail || params.password !== adminPassword) return;

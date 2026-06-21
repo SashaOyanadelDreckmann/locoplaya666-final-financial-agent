@@ -145,8 +145,8 @@ describe('documents routes', () => {
   });
 
   it('prevalidates total size before any ingest side effects', () => {
-    const chunk = Buffer.alloc(2 * 1024 * 1024, 'a').toString('base64');
-    const oversized = Array.from({ length: 26 }, (_, index) => ({ name: `bulk-${index}.csv`, base64: chunk }));
+    const chunk = Buffer.alloc(5 * 1024 * 1024, 'a').toString('base64');
+    const oversized = Array.from({ length: 25 }, (_, index) => ({ name: `bulk-${index}.csv`, base64: chunk }));
     expect(() => validateAndPrepareDocumentFiles(oversized)).toThrow(/supera/i);
   });
 });

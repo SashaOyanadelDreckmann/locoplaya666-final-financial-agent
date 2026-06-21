@@ -26,6 +26,10 @@ const sampleIntro = (): WelcomeIntroPayload => ({
 
 vi.mock('../../services/llm.service', () => ({
   completeStructured: vi.fn(),
+  runWithLLMCostTracking: vi.fn(async (fn: () => Promise<unknown>) => ({
+    result: await fn(),
+    costUsd: 0,
+  })),
 }));
 
 vi.mock('../../persistencia/repos', () => ({

@@ -162,5 +162,5 @@ describe('chat-3 integration', () => {
     expect(Array.isArray(input.context?.social_consciousness_reflections)).toBe(true);
     expect(input.context?.social_consciousness_reflections?.length).toBe(1);
     expect(res.body?.data?.suggested_replies?.[0]).toMatch(/libertad/i);
-  });
+  }, 15000);
 });

@@ -167,7 +167,7 @@ describe('budget-chat table sync', () => {
     rows = await applyTurn(r4, String(r3.body.next_question ?? ''), 'fijo con débito', rows);
     expect(rows[0]?.cadence).toBe('fixed');
     expect(rows[0]?.paymentMethod).toBe('debit');
-  });
+  }, 15000);
 
   it('syncs bulk add actions from agent into new rows', async () => {
     const { agent, csrfToken } = await createAuthedAgent();

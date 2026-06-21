@@ -35,6 +35,52 @@ const devAllowedOrigins = [
   ...buildLanDevOrigins(Number(process.env.PORT) || 3000),
 ];
 
+const securityHeaders = [
+  {
+    key: 'Content-Security-Policy',
+    value: [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: blob: https:",
+      "media-src 'self' data: blob: https:",
+      "connect-src 'self' https: wss:",
+      "worker-src 'self' blob:",
+      "manifest-src 'self'",
+      'upgrade-insecure-requests',
+    ].join('; '),
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
+  },
+  {
+    key: 'X-Frame-Options',
+    value: 'SAMEORIGIN',
+  },
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
+  },
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=()',
+  },
+  ...(process.env.NODE_ENV === 'production'
+    ? [
+        {
+          key: 'Strict-Transport-Security',
+          value: 'max-age=31536000; includeSubDomains',
+        },
+      ]
+    : []),
+];
+
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
@@ -73,6 +119,14 @@ const nextConfig = {
         source: '/budgetpreview/:path*',
         destination: '/agent',
         permanent: false,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
       },
     ];
   },

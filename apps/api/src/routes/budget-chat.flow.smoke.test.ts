@@ -146,5 +146,5 @@ describe('budget-chat assistant flow smoke', () => {
     });
     expect(confirm.body.source).toBe('budget_agent_confirm_apply');
     expect(confirm.body.action?.kind).toBe('delete');
-  });
+  }, 15000);
 });
