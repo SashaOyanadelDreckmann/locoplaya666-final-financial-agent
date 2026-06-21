@@ -54,7 +54,8 @@ if [ -n "${RAILWAY_API_TOKEN:-${RAILWAY_TOKEN:-}}" ]; then
   export RAILWAY_API_TOKEN="$RAILWAY_TOKEN"
   echo "==> Ensure transactional email vars on API service"
   "$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$API_SERVICE_NAME" >/dev/null
-  "$RAILWAY_BIN" variables --set "APPROVAL_EMAIL_FROM=Financieramente <onboarding@financieramente.app>" >/dev/null || true
+  "$RAILWAY_BIN" variables --set "APPROVAL_ADMIN_EMAIL_FROM=Financieramente <onboarding@resend.dev>" >/dev/null || true
+  "$RAILWAY_BIN" variables --set "APPROVAL_EMAIL_FROM=Financieramente <onboarding@updates.ug.uchile.cl>" >/dev/null || true
   "$RAILWAY_BIN" variables --set "WEB_ORIGIN=https://financieramente.up.railway.app" >/dev/null || true
   "$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$SERVICE" >/dev/null
 fi

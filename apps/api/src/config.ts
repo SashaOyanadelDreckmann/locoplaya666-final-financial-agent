@@ -149,7 +149,11 @@ const configSchema = z.object({
   APPROVAL_EMAIL_FROM: z
     .string()
     .default('Financieramente <onboarding@financieramente.app>')
-    .describe('From header used in approval flow emails'),
+    .describe('From header for user-facing approval and password-reset emails'),
+  APPROVAL_ADMIN_EMAIL_FROM: z
+    .string()
+    .default('Financieramente <onboarding@resend.dev>')
+    .describe('From header for admin approval-request emails (resend.dev works before custom domain is verified)'),
 });
 
 export type Config = z.infer<typeof configSchema>;

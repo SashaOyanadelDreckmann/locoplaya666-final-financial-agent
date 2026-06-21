@@ -149,7 +149,7 @@ export function verifyApprovalToken(
   return payload;
 }
 
-async function sendEmail(params: { to: string; subject: string; html: string }) {
+async function sendEmail(params: { to: string; subject: string; html: string; from?: string }) {
   const config = getConfig();
   if (!config.RESEND_API_KEY) {
     const { getLogger } = await import('../logger');
@@ -168,7 +168,7 @@ async function sendEmail(params: { to: string; subject: string; html: string }) 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: config.APPROVAL_EMAIL_FROM,
+      from: params.from ?? config.APPROVAL_EMAIL_FROM,
       to: [params.to],
       subject: params.subject,
       html: params.html,
@@ -244,6 +244,7 @@ export async function sendApprovalRequestEmail(params: {
   const rejectUrl = buildRejectUrl(rejectToken);
 
   await sendEmail({
+    from: config.APPROVAL_ADMIN_EMAIL_FROM,
     to: config.APPROVAL_ADMIN_EMAIL,
     subject: `Aprobacion pendiente: ${params.userName}`,
     html: `
