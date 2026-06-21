@@ -70,22 +70,17 @@ DB_URL="$("$RAILWAY_BIN" variable list --project "$PROJECT" --environment "$ENVI
 RESEND_KEY="$(echo "$API_VARS" | jq -r '.RESEND_API_KEY // empty')"
 WEB_ORIGIN_VAL="$(echo "$API_VARS" | jq -r '.WEB_ORIGIN // "https://financieramente.up.railway.app"')"
 EMAIL_FROM="$(echo "$API_VARS" | jq -r '.APPROVAL_EMAIL_FROM // "Financieramente <onboarding@financieramente.app>"')"
-APPROVAL_SECRET="$(echo "$API_VARS" | jq -r '.APPROVAL_LINK_SECRET // empty')"
-SESSION_SECRET="$(echo "$API_VARS" | jq -r '.SESSION_TOKEN_SECRET // empty')"
 
-if [ -n "$DB_URL" ] && [ -n "$RESEND_KEY" ] && [ -n "$APPROVAL_SECRET" ] && [ -n "$SESSION_SECRET" ]; then
+if [ -n "$DB_URL" ] && [ -n "$RESEND_KEY" ]; then
   DATABASE_URL="$DB_URL" \
   RESEND_API_KEY="$RESEND_KEY" \
   WEB_ORIGIN="$WEB_ORIGIN_VAL" \
   APPROVAL_EMAIL_FROM="$EMAIL_FROM" \
-  APPROVAL_LINK_SECRET="$APPROVAL_SECRET" \
-  SESSION_TOKEN_SECRET="$SESSION_SECRET" \
-  NODE_ENV=production \
     pnpm exec tsx scripts/qa/resend-approved-account-emails.ts || {
       echo "WARN: approval confirmation email backfill reported failures"
     }
 else
-  echo "WARN: skip approval email backfill (missing DATABASE_URL, RESEND_API_KEY, or secrets)"
+  echo "WARN: skip approval email backfill (missing DATABASE_URL or RESEND_API_KEY)"
 fi
 
 echo "==> Deploy API OK"
