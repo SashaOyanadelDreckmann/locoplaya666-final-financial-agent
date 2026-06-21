@@ -185,10 +185,15 @@ function normalizeQuestionnairePayload(payload: unknown): QuestionnaireBlock | n
       if (!isObject(q) || typeof q.id !== 'string' || typeof q.question !== 'string') return null;
       const rawChoices = Array.isArray(q.choices) ? q.choices.slice(0, 4) : [];
       const choices = rawChoices.map((c) => String(c)).filter(Boolean);
+      const responseMode: 'open_text' | 'choices' | undefined =
+        q.response_mode === 'open_text' || q.response_mode === 'choices'
+          ? q.response_mode
+          : undefined;
       return {
         id: q.id,
         question: q.question,
         choices,
+        response_mode: responseMode,
         allow_free_text: q.allow_free_text !== false,
         free_text_placeholder:
           typeof q.free_text_placeholder === 'string' ? q.free_text_placeholder : undefined,
@@ -207,175 +212,6 @@ function normalizeQuestionnairePayload(payload: unknown): QuestionnaireBlock | n
       title: typeof payload.title === 'string' ? payload.title : undefined,
       submit_label:
         typeof payload.submit_label === 'string' ? payload.submit_label : undefined,
-      questions,
-    },
-  };
-}
-
-function compactQuestionText(input: string): string {
-  return input.replace(/\s+/g, ' ').trim();
-}
-
-function inferLikelyIncomeChoices(intake: JsonRecord | null): string[] | null {
-  if (!intake) return null;
-  const exact = typeof intake.exactMonthlyIncome === 'number' ? intake.exactMonthlyIncome : null;
-  if (exact !== null) {
-    if (exact < 800_000) return ['< 800.000 CLP', '800.000-1.500.000 CLP', 'Ingreso variable', 'Prefiero otro monto'];
-    if (exact < 1_500_000) return ['800.000-1.500.000 CLP', '1.500.000-2.500.000 CLP', '600.000-800.000 CLP', 'Prefiero otro monto'];
-    return ['> 1.500.000 CLP', '1.000.000-1.500.000 CLP', 'Ingreso variable', 'Prefiero otro monto'];
-  }
-  const band = typeof intake.incomeBand === 'string' ? intake.incomeBand : '';
-  if (!band) return null;
-  const map: Record<string, string[]> = {
-    no_income: ['Sin ingresos fijos', 'Ingreso variable', 'Apoyo familiar', 'Prefiero explicar'],
-    '<300k': ['< 300.000 CLP', '300.000-600.000 CLP', 'Ingreso variable', 'Prefiero explicar'],
-    '300k-600k': ['300.000-600.000 CLP', '600.000-1.000.000 CLP', '< 300.000 CLP', 'Prefiero explicar'],
-    '600k-1M': ['600.000-1.000.000 CLP', '1.000.000-1.500.000 CLP', '300.000-600.000 CLP', 'Prefiero explicar'],
-    '1M-2M': ['1.000.000-2.000.000 CLP', '2.000.000-4.000.000 CLP', '600.000-1.000.000 CLP', 'Prefiero explicar'],
-    '2M-4M': ['2.000.000-4.000.000 CLP', '> 4.000.000 CLP', '1.000.000-2.000.000 CLP', 'Prefiero explicar'],
-    '>4M': ['> 4.000.000 CLP', '2.000.000-4.000.000 CLP', 'Ingreso variable', 'Prefiero explicar'],
-    variable: ['Ingreso variable', '< 800.000 CLP', '800.000-1.500.000 CLP', 'Prefiero explicar'],
-  };
-  return map[band] ?? null;
-}
-
-function inferLikelyDebtChoices(intake: JsonRecord | null): string[] | null {
-  if (!intake) return null;
-  const hasDebt = typeof intake.hasDebt === 'boolean' ? intake.hasDebt : null;
-  if (hasDebt === false) {
-    return ['No tengo deudas activas', 'Solo tarjeta de crédito', 'Crédito de consumo', 'Prefiero explicar'];
-  }
-
-  return null;
-}
-
-function inferLikelySavingsChoices(intake: JsonRecord | null): string[] | null {
-  if (!intake) return null;
-  const has = typeof intake.hasSavingsOrInvestments === 'boolean' ? intake.hasSavingsOrInvestments : null;
-  if (has === false) return ['No ahorro hoy', 'Ahorro ocasional', 'Quiero empezar este mes', 'Prefiero explicar'];
-
-  const exact = typeof intake.exactSavingsAmount === 'number' ? intake.exactSavingsAmount : null;
-  if (exact !== null) {
-    if (exact < 300_000) return ['< 300.000 CLP', '300.000-1.000.000 CLP', 'Ahorro mensual pequeño', 'Prefiero explicar'];
-    if (exact < 1_000_000) return ['300.000-1.000.000 CLP', '1.000.000-3.000.000 CLP', '< 300.000 CLP', 'Prefiero explicar'];
-    return ['> 1.000.000 CLP', 'Ahorro automático mensual', 'Inversión periódica', 'Prefiero explicar'];
-  }
-  return null;
-}
-
-function inferChoicesFromQuestion(question: string, context?: { intake?: JsonRecord | null }): string[] {
-  const q = question.toLowerCase();
-  const intake = context?.intake ?? null;
-
-  const withFallback = (choices: string[], fallback: string[]): string[] => {
-    const normalized = Array.from(
-      new Set([...choices, ...fallback].map((c) => c.trim()).filter(Boolean))
-    );
-    return normalized.slice(0, 4);
-  };
-
-  if (/\bmejor(ar|es)?\b|\boptimiz(ar|arlo)?\b|\bsubir\b|\bpotenciar\b/i.test(q)) {
-    return withFallback(
-      ['Sí, quiero optimizar al máximo', 'Solo un ajuste realista', 'Primero quiero ver impacto en números', 'No por ahora'],
-      ['Bajo impacto', 'Impacto medio', 'Impacto alto', 'Prefiero explicar']
-    );
-  }
-
-  if (/\bacercarte\b|\bnegoci(ar|ación)\b|\brenegoci(ar|ación)\b|\breducir tasa\b/i.test(q)) {
-    return withFallback(
-      ['Sí, tengo una oferta para negociar', 'Sí, pero necesito guion de negociación', 'Solo si baja la cuota mensual', 'No me siento listo aún'],
-      ['Hoy mismo', 'Esta semana', 'Este mes', 'Prefiero explicar']
-    );
-  }
-
-  if (/\bprioridad\b|\bqué prefieres\b|\bque prefieres\b|\bpor dónde empezamos\b|\bpor donde empezamos\b/i.test(q)) {
-    return withFallback(
-      ['Bajar deudas primero', 'Armar fondo de emergencia', 'Optimizar presupuesto mensual', 'Iniciar inversión gradual'],
-      ['Rápido', 'Balanceado', 'Conservador', 'Prefiero explicar']
-    );
-  }
-
-  if (/\bcu[aá]nto\b.*\bahorrar\b|\bahorro mensual\b|\bmeta mensual\b/i.test(q)) {
-    return withFallback(
-      ['5% de mi ingreso', '10% de mi ingreso', '15% de mi ingreso', '20% o más'],
-      ['Monto fijo bajo', 'Monto fijo medio', 'Monto fijo alto', 'Prefiero explicar']
-    );
-  }
-
-  if (
-    /\b(dónde|donde|a dónde|adonde)\b/i.test(q) ||
-    /\bobjetivo\b.*\b(concreto|inversión|inversion)\b/i.test(q)
-  ) {
-    return ['Opción más segura', 'Opción equilibrada', 'Opción agresiva', 'Prefiero explicarlo yo'];
-  }
-
-  if (
-    /\b(tiempo|frecuencia|con qué frecuencia|que frecuencia|qué tan seguido|que tan seguido)\b/i.test(q) ||
-    /\b(cada mes|cada semana|cada quincena)\b/i.test(q)
-  ) {
-    return withFallback(
-      ['Mensual', 'Quincenal', 'Semanal', 'Depende de mi flujo'],
-      ['Corto plazo', 'Mediano plazo', 'Largo plazo', 'Prefiero explicar']
-    );
-  }
-
-  if (/\bdeuda|deudas|crédito|credito|tarjeta|consumo|hipotec/i.test(q)) {
-    return inferLikelyDebtChoices(intake) ?? ['Tarjeta de crédito', 'Crédito de consumo', 'Hipotecario', 'Línea de crédito'];
-  }
-  if (/\bingreso|sueldo|entra|ganas|mes\b/i.test(q)) {
-    return inferLikelyIncomeChoices(intake) ?? ['< 800.000 CLP', '800.000-1.500.000 CLP', '> 1.500.000 CLP', 'Prefiero otro monto'];
-  }
-  if (/\bgasto|gastos|fijo|fijos\b/i.test(q)) {
-    return ['Vivienda / arriendo', 'Alimentación', 'Transporte', 'Pago de deudas'];
-  }
-  if (/\bahorro|ahorras|ahorrar|meta\b/i.test(q)) {
-    return inferLikelySavingsChoices(intake) ?? ['No ahorro', 'Ahorro irregular', 'Ahorro automático', 'Inversión mensual'];
-  }
-  if (/\bplazo|horizonte|meses|años|anos\b/i.test(q)) {
-    return ['3-6 meses', '6-12 meses', '1-3 años', 'Más de 3 años'];
-  }
-  if (/\briesgo|volatil|ca[ií]da|perdida|p[eé]rdida\b/i.test(q)) {
-    return ['Conservador', 'Balanceado', 'Agresivo', 'Prefiero explicar'];
-  }
-
-  return ['Opción más segura', 'Opción equilibrada', 'Opción agresiva', 'Prefiero explicarlo yo'];
-}
-
-export function inferQuestionnaireFromText(
-  text: string,
-  context?: {
-    intake?: unknown;
-    profile?: unknown;
-    user_message?: string;
-  }
-): QuestionnaireBlock | null {
-  if (!text) return null;
-
-  const normalized = text.replace(/\r\n/g, '\n');
-  const matches = normalized.match(/¿[^?\n]+[?]/g) ?? [];
-  const uniqueQuestions = Array.from(
-    new Set(matches.map((m) => compactQuestionText(m)))
-  ).slice(0, 3);
-
-  if (uniqueQuestions.length === 0) return null;
-
-  const intake = isObject(context?.intake) ? context?.intake : null;
-
-  const questions = uniqueQuestions.map((question, idx) => ({
-    id: `q_${idx + 1}`,
-    question,
-    choices: inferChoicesFromQuestion(question, { intake }).slice(0, 4),
-    allow_free_text: true,
-    free_text_placeholder: 'Otro (escribe aquí)',
-    required: true,
-  }));
-
-  return {
-    type: 'questionnaire',
-    questionnaire: {
-      id: `auto-${Date.now()}`,
-      title: 'Responde para avanzar',
-      submit_label: 'Enviar respuestas',
       questions,
     },
   };

@@ -25,8 +25,10 @@ import {
   extractPanelAction,
   extractBudgetTablePatch,
   cleanSpecialTags,
-  inferQuestionnaireFromText,
 } from '../helpers/chart-extraction.helpers';
+import {
+  buildInteractiveTurnArtifacts,
+} from '../helpers/questionnaire-llm.helpers';
 import { stripEmojis } from '../helpers/format.helpers';
 import { sanitizeFormulaContent } from '../helpers/formula-sanitizer';
 import {
@@ -56,6 +58,10 @@ import {
   type AgentBudgetRow,
   type FinancialEvidenceSnapshot,
 } from '../helpers/agent-financial-evidence.helpers';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 export function shouldReuseExecuteDraft(input: FormatPhaseInput): boolean {
   const draft = String(input.execution_result?.assistant_draft ?? '').trim();
@@ -308,6 +314,17 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       ? 'No inventes cifras: usa solo el manifiesto de hechos verificados, intake o citas.'
       : 'Prioriza hechos verificados; si falta evidencia, dilo explícitamente.';
 
+    const chat1PremiumRules =
+      activeChatId === 'chat-1'
+        ? [
+            'CHAT 1 — ESTANDAR PREMIUM:',
+            '- Responde primero lo concreto del turno; personaliza con presupuesto, cartola, intake y diagnostico cuando existan.',
+            '- Tono asesor financiero Chile: claro, proactivo, educador; sin relleno ni promesas de rentabilidad.',
+            '- CUESTIONARIO + CHIPS: si cierras con pregunta, emite <QUESTIONNAIRE>; NO emitas <SUGERENCIAS> (el backend genera pastillas y chips en una sola pasada LLM).',
+            '- Usa graficos/tablas cuando aporten claridad numerica; cita fuentes verificables.',
+          ].join('\n')
+        : '';
+
     const chat2PremiumRules =
       activeChatId === 'chat-2'
         ? [
@@ -320,7 +337,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
                 ? '- CONVERGENCIA: max ~150 palabras; 2 rutas con trade-off anclado al caso + 1 pregunta nueva.'
                 : '- EXPLORACION: max ~120 palabras; 3 hipotesis con evidencia + 1 pregunta nueva.',
             funnelStage !== 'deliver'
-              ? '- SUGERENCIAS: 3-4 chips que sean respuestas naturales a TU pregunta de cierre; no genericas del embudo.'
+              ? '- CUESTIONARIO + CHIPS: si cierras con pregunta, emite <QUESTIONNAIRE>; NO emitas <SUGERENCIAS> (el backend genera pastillas y chips en una sola pasada LLM).'
               : '',
           ]
             .filter(Boolean)
@@ -344,6 +361,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
         : '';
 
     const formatterInput = [
+      chat1PremiumRules,
       chat2PremiumRules,
       chat3PremiumRules,
       funnelInstructions,
@@ -378,7 +396,9 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       'Instruccion: responde en espanol, limpio, sin nombres de tools ni XML interno.',
       activeChatId === 'chat-3'
         ? 'En chat-3 prioriza prosa reflexiva; emite SUGERENCIAS filosoficas al final si aplica.'
-        : 'Si hay datos numericos comparables, emite bloques <CHART> y/o <TABLE> JSON validos (obligatorio cuando aplique) antes de SUGERENCIAS.',
+        : activeChatId === 'chat-1' || activeChatId === 'chat-2'
+          ? 'Si hay datos numericos comparables, emite <CHART> y/o <TABLE>. NO emitas <SUGERENCIAS> si cierras con pregunta al usuario (el backend genera chips alineados).'
+          : 'Si hay datos numericos comparables, emite bloques <CHART> y/o <TABLE> JSON validos (obligatorio cuando aplique) antes de SUGERENCIAS.',
     ].join('\n');
 
     const reuseExecuteDraft = shouldReuseExecuteDraft(input);
@@ -397,7 +417,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       String(input.execution_result?.assistant_draft ?? '').trim(),
     );
 
-    const suggested_replies = sanitizeSuggestedReplies(extractSuggestedReplies(rawResponse));
+    const suggested_replies_from_model = sanitizeSuggestedReplies(extractSuggestedReplies(rawResponse));
     const panel_action = extractPanelAction(rawResponse);
     const budget_table_patch = extractBudgetTablePatch({
       text: rawResponse,
@@ -434,23 +454,40 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     const ensuredCitations = await ensureEvidenceCitations(input);
     message = stripInlineSourcesBlock(message);
 
-    const hasQuestionnaireBlock = [...(input.execution_result?.agent_blocks || []), ...responseChartBlocks]
-      .some((b) => b.type === 'questionnaire');
-    const inferredQuestionnaire = !hasQuestionnaireBlock
-      ? inferQuestionnaireFromText(message, {
-          intake: input.injected_intake ?? input.context_summary?.intake,
-          profile: input.injected_profile ?? input.context_summary?.profile,
-          user_message: input.user_message,
-        })
-      : null;
+    const questionnaireContext = {
+      assistantMessage: message,
+      userMessage: input.user_message,
+      activeChatId,
+      funnelStage: funnelStage ?? socialFunnelStage ?? undefined,
+      intake: isRecord(input.injected_intake ?? input.context_summary?.intake)
+        ? ((input.injected_intake ?? input.context_summary?.intake) as Record<string, unknown>)
+        : null,
+      profile: isRecord(input.injected_profile ?? input.context_summary?.profile)
+        ? ((input.injected_profile ?? input.context_summary?.profile) as Record<string, unknown>)
+        : null,
+    };
+
+    const baseAgentBlocks = [
+      ...(input.execution_result?.agent_blocks || []),
+      ...responseChartBlocks,
+    ];
+
+    const interactiveTurn = await buildInteractiveTurnArtifacts({
+      agentBlocks: baseAgentBlocks,
+      assistantMessage: message,
+      context: questionnaireContext,
+    });
+
+    const finalAgentBlocks = interactiveTurn.agentBlocks;
+    const suggested_replies = sanitizeSuggestedReplies(
+      interactiveTurn.suggestedReplies.length > 0
+        ? interactiveTurn.suggestedReplies
+        : suggested_replies_from_model,
+    ).slice(0, 4);
 
     const formatted_response: FormattedResponse = {
       message,
-      agent_blocks: [
-        ...(input.execution_result?.agent_blocks || []),
-        ...responseChartBlocks,
-        ...(inferredQuestionnaire ? [inferredQuestionnaire] : []),
-      ],
+      agent_blocks: finalAgentBlocks,
       artifacts: input.execution_result?.artifacts || [],
       citations: ensuredCitations,
       suggested_replies,

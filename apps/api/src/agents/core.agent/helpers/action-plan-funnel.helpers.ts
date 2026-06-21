@@ -79,19 +79,23 @@ function buildActionPlanDeliverDirective(): string {
 export function buildActionPlanFormatInstructions(stage: ActionPlanFunnelStage): string {
   const userFirst =
     'Responde primero lo que el usuario escribio o pregunto; justifica con evidencia verificable; sin relleno.';
+  const interactiveUiRule =
+    'Si cierras con pregunta al usuario: emite <QUESTIONNAIRE> JSON (choices alineadas o [] si pides cifras exactas). NO emitas bloque <SUGERENCIAS>: el backend genera pastillas y chips del composer en una sola pasada LLM alineada.';
 
   if (stage === 'brainstorm') {
     return [
       'Chat 2 — Plan de accion | ETAPA 1/3 LLUVIA DE IDEAS.',
       userFirst,
-      'Max ~120 palabras: 3 bullets con evidencia + 1 pregunta. SUGERENCIAS = respuestas a tu pregunta.',
+      'Max ~120 palabras: 3 bullets con evidencia + 1 pregunta.',
+      interactiveUiRule,
     ].join(' ');
   }
   if (stage === 'converge') {
     return [
       'Chat 2 — Plan de accion | ETAPA 2/3 CONVERGENCIA.',
       userFirst,
-      'Max ~150 palabras: prioridad + 2 rutas justificadas + 1 pregunta. SUGERENCIAS alineadas.',
+      'Max ~150 palabras: prioridad + 2 rutas justificadas + 1 pregunta.',
+      interactiveUiRule,
     ].join(' ');
   }
   return [
@@ -99,5 +103,6 @@ export function buildActionPlanFormatInstructions(stage: ActionPlanFunnelStage):
     userFirst,
     'Documento completo con secciones ##; cada bloque con datos del usuario o vacio explicito.',
     'Sin correos ni recordatorios externos.',
+    'Puedes emitir <SUGERENCIAS> solo si no hay pregunta de cierre.',
   ].join(' ');
 }

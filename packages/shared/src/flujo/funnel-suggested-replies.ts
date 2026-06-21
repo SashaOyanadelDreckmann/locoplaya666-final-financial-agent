@@ -8,6 +8,8 @@ import {
   resolveSocialConsciousnessFunnelStage,
   type SocialConsciousnessFunnelStage,
 } from './social-consciousness-funnel';
+import { extractQuestionnaireClosingChoices, hasActiveQuestionnaireBlock } from '../agente/questionnaire-response-mode';
+import type { ProductChatId } from '../chat/chat-lifecycle.constants';
 
 const MAX_SUGGESTIONS = 4;
 const MAX_CONTEXTUAL = 3;
@@ -57,25 +59,17 @@ function filterRecentSuggestions(candidates: string[], recent?: string[]): strin
   return candidates.filter((entry) => !recentKeys.has(normalizeSuggestionKey(entry)));
 }
 
-export function extractAssistantAlignedReplies(assistantMessage?: string): string[] {
+export function extractAssistantAlignedReplies(
+  assistantMessage?: string,
+  questionnaireClosingChoices?: string[],
+): string[] {
+  const fromQuestionnaire = mergeUniqueSuggestions(questionnaireClosingChoices ?? [], 3);
+  if (fromQuestionnaire.length > 0) return fromQuestionnaire;
+
   const text = String(assistantMessage ?? '').trim();
   if (!text) return [];
 
-  const questions = text
-    .split(/\n+/)
-    .flatMap((line) => line.match(/[^.?!\n]*\?/g) ?? [])
-    .map((question) =>
-      question
-        .trim()
-        .replace(/^[-*•]\s*/, '')
-        .replace(/^#+\s*/, ''),
-    )
-    .filter((question) => question.length > 10);
-
-  return mergeUniqueSuggestions(
-    questions.slice(-2).map((question) => clipSuggestion(question)),
-    2,
-  );
+  return mergeUniqueSuggestions([clipSuggestion('Prefiero escribir la respuesta')], 1);
 }
 
 export function buildTurnContextActionPlanReplies(userMessage?: string): string[] {
@@ -161,12 +155,105 @@ export function buildTurnContextSocialConsciousnessReplies(userMessage?: string)
   return mergeUniqueSuggestions(out, 3);
 }
 
+export function buildChat1PhaseReplies(params: {
+  phase?: string;
+  hasBudget?: boolean;
+  hasTransactions?: boolean;
+  turnCount?: number;
+}): string[] {
+  const phase = String(params.phase ?? '');
+  const variant = Math.max(0, Math.floor(Number(params.turnCount ?? 0) / 3)) % 2;
+
+  if (params.hasBudget && params.hasTransactions) {
+    const sets = [
+      ['Abrir entrevista breve', 'Revisar presupuesto', 'Ver cartola'],
+      ['Simular un escenario', 'Revisar presupuesto', 'Ver mis movimientos'],
+    ];
+    return sets[variant] ?? sets[0];
+  }
+
+  if (phase === 'transactions_needed' || !params.hasTransactions) {
+    const sets = [
+      ['Subir cartola del mes', 'Explorar deuda', 'Simular ahorro'],
+      ['Ver mis movimientos', 'Comparar gastos del mes', 'Simular ahorro'],
+    ];
+    return sets[variant] ?? sets[0];
+  }
+
+  if (phase === 'budget_needed' || !params.hasBudget) {
+    const sets = [
+      ['Completar presupuesto', 'Ver balance mensual', 'Probar escenario'],
+      ['Armar presupuesto', 'Ver ingresos vs gastos', 'Simular meta de ahorro'],
+    ];
+    return sets[variant] ?? sets[0];
+  }
+
+  const sets = [
+    ['Revisemos mi presupuesto', 'Hazme una simulación simple', 'Resume mi situación'],
+    ['Simular escenario base', 'Ver UF y TPM actuales', 'Resume mi situación'],
+  ];
+  return sets[variant] ?? sets[0];
+}
+
+export function buildTurnContextChat1Replies(userMessage?: string): string[] {
+  const text = normalizeTopic(userMessage);
+  const raw = String(userMessage ?? '');
+  const out: string[] = [];
+
+  const push = (suggestion: string) => {
+    out.push(suggestion);
+  };
+
+  out.push(...buildTurnContextActionPlanReplies(userMessage));
+
+  if (/\b(simul|escenario|monte carlo|proyecc)\b/.test(text)) {
+    push('Escenario optimista vs pesimista');
+    push('Monte Carlo de riesgo');
+  }
+  if (/\b(uf|tpm|dolar|usd|ipc|inflacion)\b/.test(text)) {
+    push('Ver UF y TPM actuales');
+  }
+  if (/\b(cartola|movimiento|transaccion|producto banc)\b/.test(text)) {
+    push('Ver mis movimientos');
+    push('Top gastos del mes');
+  }
+  if (/\b(presupuesto|balance|ingreso vs gasto)\b/.test(text)) {
+    push('Resumen de mi presupuesto');
+  }
+  if (/\b(diagnostico|situacion|perfil|como estoy)\b/.test(text)) {
+    push('Resume mi situación financiera');
+  }
+  if (/\b(regulacion|cmf|normativa|ley)\b/.test(text)) {
+    push('Consultar normativa CMF');
+  }
+  if (/\b(meta|objetivo|plazo)\b/.test(text)) {
+    push('Calcular plazo de mi meta');
+  }
+  if (/\?/.test(raw) && out.length < 2) {
+    push('Profundizar en este punto');
+  }
+
+  return mergeUniqueSuggestions(out, 3);
+}
+
 function resolveFunnelStageReplies(params: {
-  activeChatId: 'chat-2' | 'chat-3';
+  activeChatId: ProductChatId;
   turnCount?: number;
   closingMode?: boolean;
   userMessage?: string;
+  onboardingPhase?: string;
+  hasBudget?: boolean;
+  hasTransactions?: boolean;
 }): string[] {
+  if (params.activeChatId === 'chat-1') {
+    return buildChat1PhaseReplies({
+      phase: params.onboardingPhase,
+      hasBudget: params.hasBudget,
+      hasTransactions: params.hasTransactions,
+      turnCount: params.turnCount,
+    });
+  }
+
   if (params.activeChatId === 'chat-2') {
     const stage =
       resolveActionPlanFunnelStage({
@@ -188,21 +275,61 @@ function resolveFunnelStageReplies(params: {
   return buildSocialConsciousnessSuggestedReplies(stage);
 }
 
+function mergeStrictQuestionnaireSuggestions(params: {
+  assistantMessage?: string;
+  modelSuggestedReplies?: string[];
+  recentSuggestedReplies?: string[];
+  questionnaireClosingChoices?: string[];
+  questionnaireBlocks?: unknown;
+}): string[] {
+  const closingChoices =
+    params.questionnaireClosingChoices?.length
+      ? params.questionnaireClosingChoices
+      : extractQuestionnaireClosingChoices(params.questionnaireBlocks);
+
+  const aligned = mergeUniqueSuggestions(
+    [
+      ...(params.modelSuggestedReplies ?? []),
+      ...extractAssistantAlignedReplies(params.assistantMessage, closingChoices),
+    ],
+    MAX_SUGGESTIONS,
+  );
+
+  const filtered = filterRecentSuggestions(aligned, params.recentSuggestedReplies);
+  return filtered.length > 0 ? filtered : aligned;
+}
+
 export function mergeFunnelSuggestedReplies(params: {
-  activeChatId: 'chat-2' | 'chat-3';
+  activeChatId: ProductChatId;
   turnCount?: number;
   closingMode?: boolean;
   userMessage?: string;
   assistantMessage?: string;
   modelSuggestedReplies?: string[];
   recentSuggestedReplies?: string[];
+  questionnaireClosingChoices?: string[];
+  questionnaireBlocks?: unknown;
+  onboardingPhase?: string;
+  hasBudget?: boolean;
+  hasTransactions?: boolean;
 }): string[] {
+  if (hasActiveQuestionnaireBlock(params.questionnaireBlocks)) {
+    return mergeStrictQuestionnaireSuggestions(params);
+  }
+
   const funnelDefaults = resolveFunnelStageReplies(params);
-  const assistantAligned = extractAssistantAlignedReplies(params.assistantMessage);
+  const assistantAligned = extractAssistantAlignedReplies(
+    params.assistantMessage,
+    params.questionnaireClosingChoices?.length
+      ? params.questionnaireClosingChoices
+      : extractQuestionnaireClosingChoices(params.questionnaireBlocks),
+  );
   const turnContext =
-    params.activeChatId === 'chat-2'
-      ? buildTurnContextActionPlanReplies(params.userMessage)
-      : buildTurnContextSocialConsciousnessReplies(params.userMessage);
+    params.activeChatId === 'chat-1'
+      ? buildTurnContextChat1Replies(params.userMessage)
+      : params.activeChatId === 'chat-2'
+        ? buildTurnContextActionPlanReplies(params.userMessage)
+        : buildTurnContextSocialConsciousnessReplies(params.userMessage);
 
   const contextual = filterRecentSuggestions(
     mergeUniqueSuggestions(

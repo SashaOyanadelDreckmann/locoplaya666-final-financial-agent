@@ -50,6 +50,7 @@ type QuestionnaireQuestion = {
   id: string;
   question: string;
   choices: string[];
+  response_mode?: 'open_text' | 'choices';
   allow_free_text?: boolean;
   free_text_placeholder?: string;
   required?: boolean;
@@ -73,7 +74,7 @@ function QuestionnaireBlockView(props: {
   const questionModes = useMemo(
     () =>
       questionnaire.questions.map((q) =>
-        resolveQuestionnaireResponseMode(q.question, q.choices, chatTheme),
+        resolveQuestionnaireResponseMode(q.question, q.choices, chatTheme, q.response_mode ?? null),
       ),
     [chatTheme, questionnaire.questions],
   );

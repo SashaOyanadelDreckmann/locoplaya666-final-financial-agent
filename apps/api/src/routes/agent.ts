@@ -40,6 +40,7 @@ import { complete, runWithLLMCostTracking } from '../services/llm.service';
 import {
   buildSocialConsciousnessFallbackMessage,
   extractAssistantAlignedReplies,
+  extractQuestionnaireClosingChoices,
   mergeFunnelSuggestedReplies,
 } from '@financial-agent/shared';
 import {
@@ -414,35 +415,36 @@ function buildContextualSuggestedReplies(params: {
   assistantMessage?: string;
   modelSuggestedReplies?: string[];
   recentSuggestedReplies?: string[];
+  questionnaireClosingChoices?: string[];
+  questionnaireBlocks?: unknown;
 }) {
-  const phase = String(params.phase ?? '');
   const activeChatId = String(params.activeChatId ?? 'chat-1');
-  if (activeChatId === 'chat-2') {
+  if (activeChatId === 'chat-1' || activeChatId === 'chat-2' || activeChatId === 'chat-3') {
     return mergeFunnelSuggestedReplies({
-      activeChatId: 'chat-2',
+      activeChatId: activeChatId as 'chat-1' | 'chat-2' | 'chat-3',
       turnCount: params.turnCount,
       closingMode: params.closingMode,
       userMessage: params.userMessage,
       assistantMessage: params.assistantMessage,
       modelSuggestedReplies: params.modelSuggestedReplies,
       recentSuggestedReplies: params.recentSuggestedReplies,
+      questionnaireClosingChoices: params.questionnaireClosingChoices,
+      questionnaireBlocks: params.questionnaireBlocks,
+      onboardingPhase: String(params.phase ?? ''),
+      hasBudget: params.hasBudget,
+      hasTransactions: params.hasTransactions,
     });
   }
-  if (activeChatId === 'chat-3') {
-    return mergeFunnelSuggestedReplies({
-      activeChatId: 'chat-3',
-      turnCount: params.turnCount,
-      closingMode: params.closingMode,
-      userMessage: params.userMessage,
-      assistantMessage: params.assistantMessage,
-      modelSuggestedReplies: params.modelSuggestedReplies,
-      recentSuggestedReplies: params.recentSuggestedReplies,
-    });
-  }
-  if (params.hasBudget && params.hasTransactions) return ['Abrir entrevista breve', 'Revisar presupuesto', 'Ver cartola'];
-  if (phase === 'transactions_needed') return ['Subir cartola', 'Explorar deuda', 'Simular ahorro'];
-  if (phase === 'budget_needed') return ['Completar presupuesto', 'Ver balance', 'Probar escenario'];
+
   return ['Revisemos mi presupuesto', 'Hazme una simulación simple', 'Resume mi situación financiera'];
+}
+
+function readQuestionnaireSuggestionContext(response: { agent_blocks?: unknown }) {
+  const questionnaireBlocks = Array.isArray(response.agent_blocks) ? response.agent_blocks : [];
+  return {
+    questionnaireBlocks,
+    questionnaireClosingChoices: extractQuestionnaireClosingChoices(questionnaireBlocks),
+  };
 }
 
 function buildLifecycleSuggestedReplies(params: {
@@ -456,6 +458,8 @@ function buildLifecycleSuggestedReplies(params: {
   assistantMessage?: string;
   modelSuggestedReplies?: string[];
   recentSuggestedReplies?: string[];
+  questionnaireClosingChoices?: string[];
+  questionnaireBlocks?: unknown;
 }) {
   const {
     lifecycleDecision,
@@ -464,6 +468,8 @@ function buildLifecycleSuggestedReplies(params: {
     assistantMessage,
     modelSuggestedReplies,
     recentSuggestedReplies,
+    questionnaireClosingChoices,
+    questionnaireBlocks,
   } = params;
   return buildContextualSuggestedReplies({
     phase: lifecycleDecision.state.phase,
@@ -476,6 +482,8 @@ function buildLifecycleSuggestedReplies(params: {
     assistantMessage,
     modelSuggestedReplies,
     recentSuggestedReplies,
+    questionnaireClosingChoices,
+    questionnaireBlocks,
   });
 }
 
@@ -1958,9 +1966,11 @@ router.post(
     }
 
     if (
+      lifecycleDecision.activeChatId === 'chat-1' ||
       lifecycleDecision.activeChatId === 'chat-2' ||
       lifecycleDecision.activeChatId === 'chat-3'
     ) {
+      const questionnaireContext = readQuestionnaireSuggestionContext(response);
       response.suggested_replies = buildLifecycleSuggestedReplies({
         lifecycleDecision,
         onboardingSignals,
@@ -1970,6 +1980,8 @@ router.post(
           ? response.suggested_replies
           : [],
         recentSuggestedReplies,
+        questionnaireClosingChoices: questionnaireContext.questionnaireClosingChoices,
+        questionnaireBlocks: questionnaireContext.questionnaireBlocks,
       });
     }
 

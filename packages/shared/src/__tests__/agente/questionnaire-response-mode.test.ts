@@ -1,49 +1,75 @@
+import { describe, expect, it } from 'vitest';
 import {
-  isGenericQuestionnaireChoices,
+  extractQuestionnaireClosingChoices,
+  hasActiveQuestionnaireBlock,
   resolveQuestionnaireResponseMode,
-  shouldUseOpenTextQuestionnaireInput,
 } from '../../agente/questionnaire-response-mode';
 
 describe('questionnaire-response-mode', () => {
-  it('detects generic fallback choices', () => {
+  it('uses backend response_mode when provided', () => {
     expect(
-      isGenericQuestionnaireChoices([
-        'Opción más segura',
-        'Opción equilibrada',
-        'Opción agresiva',
-        'Prefiero explicarlo yo',
-      ]),
-    ).toBe(true);
+      resolveQuestionnaireResponseMode(
+        '¿Cuánto es tu deuda?',
+        ['Tarjeta de crédito'],
+        'chat-2',
+        'open_text',
+      ),
+    ).toBe('open-text');
   });
 
-  it('treats specific frequency choices as closed', () => {
-    const choices = ['Mensual', 'Quincenal', 'Semanal', 'Depende de mi flujo'];
-    expect(isGenericQuestionnaireChoices(choices)).toBe(false);
-    expect(shouldUseOpenTextQuestionnaireInput('¿Con qué frecuencia ahorras?', choices)).toBe(false);
+  it('uses choices when backend marks choices mode', () => {
+    expect(
+      resolveQuestionnaireResponseMode(
+        '¿Prefieres atacar la tarjeta o armar colchón primero?',
+        ['Atacar la tarjeta', 'Armar colchón primero'],
+        'chat-2',
+        'choices',
+      ),
+    ).toBe('choices');
   });
 
-  it('uses open text for location questions with mismatched frequency choices', () => {
-    const question = '¿Dónde está ese dinero de $29.824 que sobra cada mes?';
-    const choices = ['Mensual', 'Quincenal', 'Semanal', 'Depende de mi flujo'];
-    expect(shouldUseOpenTextQuestionnaireInput(question, choices)).toBe(true);
-    expect(resolveQuestionnaireResponseMode(question, choices, 'chat-1')).toBe('open-text');
-  });
-
-  it('uses open text for concrete investment objective questions', () => {
-    const question = '¿Cuál es tu objetivo de inversión concreto?';
-    const choices = ['Opción más segura', 'Opción equilibrada', 'Opción agresiva', 'Prefiero explicarlo yo'];
-    expect(resolveQuestionnaireResponseMode(question, choices, 'chat-2')).toBe('open-text');
-  });
-
-  it('keeps closed choices for chat-1 when options fit the question', () => {
-    const question = '¿Con qué frecuencia revisas tu presupuesto?';
-    const choices = ['Mensual', 'Quincenal', 'Semanal', 'Depende de mi flujo'];
-    expect(resolveQuestionnaireResponseMode(question, choices, 'chat-1')).toBe('choices');
+  it('falls back to open text when there are no choices', () => {
+    expect(resolveQuestionnaireResponseMode('¿Cuánto es tu deuda?', [], 'chat-2')).toBe('open-text');
   });
 
   it('forces open text in chat-3 regardless of choices', () => {
-    const question = '¿Con qué frecuencia ahorras?';
-    const choices = ['Mensual', 'Quincenal', 'Semanal', 'Depende de mi flujo'];
-    expect(resolveQuestionnaireResponseMode(question, choices, 'chat-3')).toBe('open-text');
+    expect(
+      resolveQuestionnaireResponseMode(
+        '¿Con qué frecuencia ahorras?',
+        ['Mensual', 'Quincenal'],
+        'chat-3',
+        'choices',
+      ),
+    ).toBe('open-text');
+  });
+
+  it('detects active questionnaire blocks', () => {
+    expect(
+      hasActiveQuestionnaireBlock([
+        {
+          type: 'questionnaire',
+          questionnaire: { questions: [{ question: '¿Cuánto es tu deuda?' }] },
+        },
+      ]),
+    ).toBe(true);
+    expect(hasActiveQuestionnaireBlock([])).toBe(false);
+  });
+
+  it('extracts closing choices from questionnaire blocks', () => {
+    const choices = extractQuestionnaireClosingChoices([
+      {
+        type: 'questionnaire',
+        questionnaire: {
+          questions: [
+            {
+              choices: ['Atacar la tarjeta', 'Armar colchón primero'],
+              response_mode: 'choices',
+            },
+          ],
+        },
+      },
+    ]);
+
+    expect(choices).toEqual(['Atacar la tarjeta', 'Armar colchón primero']);
   });
 });

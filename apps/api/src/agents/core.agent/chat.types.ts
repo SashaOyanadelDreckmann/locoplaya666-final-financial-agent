@@ -217,6 +217,7 @@ export const QuestionnaireBlockSchema = z.object({
           id: z.string().min(1),
           question: z.string().min(1),
           choices: z.array(z.string().min(1)).max(4).default([]),
+          response_mode: z.enum(['open_text', 'choices']).optional(),
           allow_free_text: z.boolean().default(true),
           free_text_placeholder: z.string().optional(),
           required: z.boolean().default(true),

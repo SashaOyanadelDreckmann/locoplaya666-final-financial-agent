@@ -65,6 +65,7 @@ export type AgentBlock =
           id: string;
           question: string;
           choices: string[];
+          response_mode?: 'open_text' | 'choices';
           allow_free_text?: boolean;
           free_text_placeholder?: string;
           required?: boolean;
