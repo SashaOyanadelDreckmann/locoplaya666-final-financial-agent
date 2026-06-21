@@ -1,0 +1,30 @@
+name: Backfill approval confirmation emails
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: 6a535ffc-9224-4db3-b385-adf8f2bf0218
+      RAILWAY_ENVIRONMENT_ID: 240cefd8-f924-4b76-a890-771db0a45a91
+      RAILWAY_API_SERVICE_NAME: locoplaya666-final-financial-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run idempotent approval email backfill
+        run: bash scripts/despliegue/run-approval-email-backfill.sh

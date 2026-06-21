@@ -148,7 +148,7 @@ const configSchema = z.object({
     .describe('Expiration time in hours for approval links'),
   APPROVAL_EMAIL_FROM: z
     .string()
-    .default('Financieramente <onboarding@resend.dev>')
+    .default('Financieramente <onboarding@financieramente.app>')
     .describe('From header used in approval flow emails'),
 });
 
