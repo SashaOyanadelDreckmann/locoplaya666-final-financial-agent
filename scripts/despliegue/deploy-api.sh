@@ -18,10 +18,6 @@ if [ -z "$PROJECT" ] || [ -z "$ENVIRONMENT" ]; then
   exit 1
 fi
 
-if [ -n "${RAILWAY_API_TOKEN:-}" ]; then
-  export RAILWAY_TOKEN="$RAILWAY_API_TOKEN"
-fi
-
 if [ -f "$ROOT_DIR/scripts/despliegue/sync-railway-production-vars.sh" ]; then
   bash "$ROOT_DIR/scripts/despliegue/sync-railway-production-vars.sh" || {
     echo "WARN: sync-railway-production-vars falló; continúo deploy"
@@ -51,14 +47,12 @@ fi
 
 API_SERVICE_NAME="${RAILWAY_API_SERVICE_NAME:-locoplaya666-final-financial-agent}"
 if [ -n "${RAILWAY_API_TOKEN:-${RAILWAY_TOKEN:-}}" ]; then
-  export RAILWAY_TOKEN="${RAILWAY_API_TOKEN:-${RAILWAY_TOKEN:-}}"
-  export RAILWAY_API_TOKEN="$RAILWAY_TOKEN"
   echo "==> Ensure transactional email vars on API service"
-  "$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$API_SERVICE_NAME" >/dev/null
+  "$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$API_SERVICE_NAME" >/dev/null || true
   "$RAILWAY_BIN" variables --set "APPROVAL_ADMIN_EMAIL_FROM=Financieramente <onboarding@resend.dev>" >/dev/null || true
   "$RAILWAY_BIN" variables --set "APPROVAL_EMAIL_FROM=Financieramente <onboarding@updates.ug.uchile.cl>" >/dev/null || true
   "$RAILWAY_BIN" variables --set "WEB_ORIGIN=https://financieramente.up.railway.app" >/dev/null || true
-  "$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$SERVICE" >/dev/null
+  "$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$SERVICE" >/dev/null || true
 fi
 
 echo "==> Deploy API"
