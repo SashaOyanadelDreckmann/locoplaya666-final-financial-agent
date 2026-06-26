@@ -1,6 +1,8 @@
+import { resolveAgentHistoryCharLimit } from '../agente/questionnaire-history';
+
 export const CORE_AGENT_HISTORY_TURN_LIMIT = 12;
 export const CORE_AGENT_HISTORY_MESSAGE_LIMIT = CORE_AGENT_HISTORY_TURN_LIMIT * 2;
-export const CORE_AGENT_HISTORY_MESSAGE_CHAR_LIMIT = 360;
+export const CORE_AGENT_HISTORY_MESSAGE_CHAR_LIMIT = 600;
 
 /** Chat 2 allows the full product turn budget with richer message retention. */
 export const CHAT_2_AGENT_HISTORY_TURN_LIMIT = 20;
@@ -73,10 +75,14 @@ export function compactCoreAgentHistory(
         entry.content.trim().length > 0,
     )
     .slice(-maxMessages)
-    .map((entry) => ({
-      role: (entry.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-      content: entry.content.trim().slice(0, maxChars),
-    }));
+    .map((entry) => {
+      const trimmed = entry.content.trim();
+      const charLimit = resolveAgentHistoryCharLimit(trimmed, maxChars);
+      return {
+        role: (entry.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
+        content: trimmed.slice(0, charLimit),
+      };
+    });
 }
 
 export function compactBudgetChatAnswers(

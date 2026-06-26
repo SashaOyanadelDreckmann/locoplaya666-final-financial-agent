@@ -1471,6 +1471,29 @@
     text-overflow: ellipsis !important;
   }
 
+  .transactions-modal .tx-format-continue-block{
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .transactions-modal .tx-format-continue-cue{
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--tx-contract-accent-edge, rgba(56, 189, 248, 0.35)) !important;
+    background: var(--tx-contract-accent-soft, rgba(56, 189, 248, 0.12)) !important;
+    color: var(--tx-contract-text) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+    text-align: center !important;
+  }
+
+  .transactions-modal .tx-composer-sticky-host{
+    scroll-margin-bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
   /* Inputs — 16px prevents iOS zoom; scroll stays inside tx-scroll-body */
   .transactions-modal .bank-sim-grid input,
 .transactions-modal .bank-sim-grid textarea,

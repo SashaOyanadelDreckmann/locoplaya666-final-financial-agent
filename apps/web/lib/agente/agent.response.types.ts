@@ -119,7 +119,7 @@ export type ChatUploadFileKind = 'image' | 'pdf' | 'spreadsheet' | 'document';
 export type ChatUploadStatus = 'processing' | 'ready' | 'error';
 
 export type ChatItem =
-  | { type: 'message'; role: 'user'; content: string }
+  | { type: 'message'; role: 'user'; content: string; agent_content?: string }
   | {
       type: 'upload';
       role: 'user';
@@ -179,6 +179,9 @@ export function toChatItemsFromAgentResponse(res: AgentResponse): ChatItem[] {
       mode: res.mode ?? res.reasoning_mode,
       objective: res.react?.objective,
       agent_blocks: res.agent_blocks,
+      suggested_replies: Array.isArray(res.suggested_replies)
+        ? res.suggested_replies.map((entry) => String(entry ?? '').trim()).filter(Boolean).slice(0, 4)
+        : undefined,
     });
   }
 

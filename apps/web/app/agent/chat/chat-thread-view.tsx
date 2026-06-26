@@ -577,9 +577,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
             props.activeThreadId,
             props.chat1GeneralDeepened,
           );
-        const questionnaireBlocks = props.diagnosisUnlocked
-          ? blocks.filter((b) => b.type === 'questionnaire')
-          : [];
+        const questionnaireBlocks = blocks.filter((b) => b.type === 'questionnaire');
         const transactionChartBlocks = blocks.filter((b) => b.type === 'tx_chart');
         const technicalBlocks = blocks.filter(
           (b) => b.type !== 'questionnaire' && b.type !== 'executive_intro' && b.type !== 'tx_chart',
@@ -767,13 +765,12 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                           ? props.activeThreadId
                           : null
                       }
-                      onQuestionnaireSubmit={({ message }) => {
-                        if (props.sendDisabled) return;
-                        void props.onSend('Completé el formulario', {
+                      onQuestionnaireSubmit={({ message }) =>
+                        props.onSend('Completé el formulario', {
                           agentPayload: message,
                           ignoreLoadingGuard: true,
-                        });
-                      }}
+                        })
+                      }
                     />
                   </div>
                 )}
@@ -791,13 +788,12 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                     {technicalBlocks.length > 0 && (
                       <AgentBlocksRenderer
                         blocks={technicalBlocks}
-                        onQuestionnaireSubmit={({ message }) => {
-                          if (props.sendDisabled) return;
-                          void props.onSend('Completé el formulario', {
+                        onQuestionnaireSubmit={({ message }) =>
+                          props.onSend('Completé el formulario', {
                             agentPayload: message,
                             ignoreLoadingGuard: true,
-                          });
-                        }}
+                          })
+                        }
                       />
                     )}
                   </div>

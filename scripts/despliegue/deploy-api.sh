@@ -8,7 +8,7 @@ cd "$ROOT_DIR"
 source "$ROOT_DIR/scripts/despliegue/lib/http-health.sh"
 
 RAILWAY_BIN="${RAILWAY_BIN:-railway}"
-SERVICE="${RAILWAY_API_SERVICE_ID:-203d29a0-15ce-4cad-8014-2ea06d3008ed}"
+SERVICE="${RAILWAY_API_SERVICE_ID:-2d7f897f-3b0d-4a79-8ca1-ff760b7bcb53}"
 PROJECT="${RAILWAY_PROJECT_ID:-}"
 ENVIRONMENT="${RAILWAY_ENVIRONMENT_ID:-}"
 API_HEALTH_URL="${API_HEALTH_URL:-https://locoplaya666-final-financial-agent-production.up.railway.app}"

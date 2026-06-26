@@ -126,6 +126,7 @@ export function ensureLeadingIntroShell(threadId: string, items: ChatItem[]): Ch
 export function appendOptimisticCoreAgentTurn(params: {
   list: ChatItem[];
   userMessage: string;
+  agentContent?: string;
   hideUserMessage?: boolean;
   threadId?: string;
 }): ChatItem[] {
@@ -134,7 +135,17 @@ export function appendOptimisticCoreAgentTurn(params: {
     : params.list;
   const next = params.hideUserMessage
     ? [...base]
-    : [...base, { type: 'message' as const, role: 'user' as const, content: params.userMessage }];
+    : [
+        ...base,
+        {
+          type: 'message' as const,
+          role: 'user' as const,
+          content: params.userMessage,
+          ...(params.agentContent && params.agentContent !== params.userMessage
+            ? { agent_content: params.agentContent }
+            : {}),
+        },
+      ];
   return [...next, createStreamingAssistantPlaceholder()];
 }
 

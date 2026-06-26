@@ -71,6 +71,30 @@ describe('sheet-restore.service', () => {
     expect(repaired.userMessageCount).toBe(2);
   });
 
+  it('upgrades placeholder questionnaire messages when turn counts already match', () => {
+    const sheet = baseSheet({
+      items: [
+        { type: 'message', role: 'user', content: 'Completé el formulario' },
+        { type: 'message', role: 'assistant', content: 'Gracias' },
+      ],
+      userMessageCount: 1,
+    });
+    const repaired = repairSheetFromTurns(sheet, [
+      turn({
+        userMessage:
+          'Formulario respondido. id=q1 titulo=Prioridad respuestas=q1=Pagar deuda Siguiente paso: entrega diagnóstico y 3 acciones concretas.',
+        assistantMessage: 'Gracias',
+      }),
+    ]);
+
+    expect(repaired).not.toBe(sheet);
+    const userItem = repaired.items.find(
+      (item) => isRecord(item) && item.type === 'message' && item.role === 'user',
+    );
+    expect(userItem?.content).toBe('Completé el formulario');
+    expect(String(userItem?.agent_content ?? '')).toContain('Formulario respondido.');
+  });
+
   it('does not downgrade a sheet that already has all user messages', () => {
     const sheet = baseSheet({
       items: [

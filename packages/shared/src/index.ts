@@ -78,6 +78,7 @@ export {
 export * from './interfaz/ui-events';
 export * from './fincoins/fincoin.constants';
 export * from './agente/questionnaire-response-mode';
+export * from './agente/questionnaire-history';
 export * from './agente/agent-stream';
 export * from './agente/agent-stream-sanitize';
 export * from './agente/structured-agent-tags';

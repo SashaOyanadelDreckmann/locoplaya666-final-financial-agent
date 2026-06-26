@@ -1,6 +1,8 @@
 import {
   compactCoreAgentHistory,
+  mergeAgentConversationHistory,
   resolveCoreAgentHistoryLimits,
+  resolveUserMessageForAgentHistory,
 } from '@financial-agent/shared';
 
 import { listConversationTurnsSafe } from '../../../persistencia/repos/conversation.repository';
@@ -20,7 +22,11 @@ export function extractChatHistoryFromSheet(
     .filter((item): item is Record<string, unknown> => isRecord(item) && item.type === 'message')
     .map((item) => ({
       role: item.role === 'assistant' ? 'assistant' : 'user',
-      content: String(item.content ?? '').trim(),
+      content: resolveUserMessageForAgentHistory({
+        content: String(item.content ?? ''),
+        agent_content:
+          typeof item.agent_content === 'string' ? item.agent_content : undefined,
+      }),
     }))
     .filter((entry) => entry.content.length > 0);
 }
@@ -65,5 +71,5 @@ export async function resolveAgentConversationHistory(params: {
     fromStorage = compactCoreAgentHistory(extractChatHistoryFromSheet(sheet), compactOpts);
   }
 
-  return fromStorage.length > fromClient.length ? fromStorage : fromClient;
+  return mergeAgentConversationHistory(fromClient, fromStorage);
 }

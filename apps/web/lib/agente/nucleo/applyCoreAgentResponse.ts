@@ -78,6 +78,9 @@ function buildFinalAssistantMessageItem(
     mode: response.mode ?? response.reasoning_mode,
     objective: response.react?.objective,
     agent_blocks: response.agent_blocks,
+    suggested_replies: Array.isArray(response.suggested_replies)
+      ? response.suggested_replies.map((entry) => String(entry ?? '').trim()).filter(Boolean).slice(0, 4)
+      : undefined,
     panel_action: response.panel_action,
   };
 }

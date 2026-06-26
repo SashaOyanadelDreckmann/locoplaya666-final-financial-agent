@@ -1,8 +1,26 @@
 /** @jest-environment jsdom */
 
 import { fireEvent, render, screen } from '@testing-library/react';
-import { TxEvidenceStep } from '../TxEvidenceStep';
 import type { BankProduct } from '../types';
+
+jest.mock('../tx-evidence-scroll.helpers', () => ({
+  revealTransactionsEvidenceContinueStep: jest.fn(),
+}));
+
+jest.mock('@/lib/interfaz/use-section-scroll-progress', () => ({
+  useNarrowViewport: jest.fn(() => false),
+}));
+
+jest.mock('../use-prefers-reduced-motion', () => ({
+  usePrefersReducedMotion: () => false,
+}));
+
+import { TxEvidenceStep } from '../TxEvidenceStep';
+import { revealTransactionsEvidenceContinueStep } from '../tx-evidence-scroll.helpers';
+
+const { useNarrowViewport } = jest.requireMock('@/lib/interfaz/use-section-scroll-progress') as {
+  useNarrowViewport: jest.Mock;
+};
 
 function buildProduct(): BankProduct {
   return {
@@ -57,6 +75,11 @@ function buildProps(overrides: Partial<Parameters<typeof TxEvidenceStep>[0]> = {
 }
 
 describe('TxEvidenceStep', () => {
+  beforeEach(() => {
+    useNarrowViewport.mockReturnValue(false);
+    jest.restoreAllMocks();
+  });
+
   it('renders unified composer with attach control and format chips', () => {
     render(<TxEvidenceStep {...buildProps()} />);
 
@@ -161,6 +184,48 @@ describe('TxEvidenceStep', () => {
     expect(screen.queryByText(/resumen listo/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/panorama del periodo/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /continuar al resumen/i })).toBeInTheDocument();
+  });
+
+  it('scrolls to the continue composer on mobile after selecting a format', () => {
+    jest.useFakeTimers();
+    useNarrowViewport.mockReturnValue(true);
+    const revealSpy = revealTransactionsEvidenceContinueStep as jest.Mock;
+    revealSpy.mockClear();
+    const onPatchUploadFormat = jest.fn();
+    const onSetUploadOnboardingStep = jest.fn();
+
+    render(
+      <TxEvidenceStep
+        {...buildProps({
+          onPatchUploadFormat,
+          onSetUploadOnboardingStep,
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
+
+    expect(onPatchUploadFormat).toHaveBeenCalledWith('pdf');
+    expect(onSetUploadOnboardingStep).toHaveBeenCalledWith('details');
+
+    jest.runAllTimers();
+    expect(revealSpy).toHaveBeenCalled();
+
+    jest.useRealTimers();
+  });
+
+  it('shows mobile continue cue after a format is selected', () => {
+    useNarrowViewport.mockReturnValue(true);
+
+    render(
+      <TxEvidenceStep
+        {...buildProps({
+          selectedUploadFormat: 'pdf',
+          txUploadOnboardingStep: 'details',
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/sigue abajo: adjunta tu archivo/i)).toBeInTheDocument();
   });
 
   it('shows photo format examples below guidance when photos format is selected', () => {

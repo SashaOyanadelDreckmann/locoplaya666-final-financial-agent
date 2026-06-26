@@ -142,6 +142,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
           appendOptimisticCoreAgentTurn({
             list: prev,
             userMessage,
+            agentContent: agentMessage !== userMessage ? agentMessage : undefined,
             hideUserMessage,
             threadId: getActiveThreadId(),
           }),

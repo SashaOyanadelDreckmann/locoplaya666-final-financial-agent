@@ -1,3 +1,10 @@
+import {
+  isQuestionnairePlaceholderUserMessage,
+  isQuestionnaireResponsePayload,
+  QUESTIONNAIRE_PLACEHOLDER_USER_MESSAGE,
+  resolveUserMessageForAgentHistory,
+} from '@financial-agent/shared';
+
 import type { StoredSheet } from '../persistencia/types';
 import type { ConversationTurnRecord } from '../persistencia/repos/conversation.repository';
 
@@ -74,11 +81,61 @@ function buildItemsFromAgentPayload(payload: Record<string, unknown>): unknown[]
   return items;
 }
 
+function buildUserMessageItem(userMessage: string): Record<string, unknown> {
+  if (isQuestionnaireResponsePayload(userMessage)) {
+    return {
+      type: 'message',
+      role: 'user',
+      content: QUESTIONNAIRE_PLACEHOLDER_USER_MESSAGE,
+      agent_content: userMessage,
+    };
+  }
+  return { type: 'message', role: 'user', content: userMessage };
+}
+
+function sheetHasDegradedQuestionnaireMessages(
+  sheetItems: unknown[],
+  chatTurns: ConversationTurnRecord[],
+): boolean {
+  const userMessages = sheetItems.filter(
+    (item) => isRecord(item) && item.type === 'message' && item.role === 'user',
+  );
+  let turnIndex = 0;
+
+  for (const turn of chatTurns) {
+    const turnUser = String(turn.userMessage ?? '').trim();
+    if (!turnUser) continue;
+
+    const sheetUser = userMessages[turnIndex] as Record<string, unknown>;
+    turnIndex += 1;
+    if (!sheetUser) return true;
+
+    const sheetAgent = String(sheetUser.agent_content ?? '').trim();
+    const sheetContent = resolveUserMessageForAgentHistory({
+      content: String(sheetUser.content ?? ''),
+      agent_content: sheetAgent || undefined,
+    });
+
+    if (isQuestionnaireResponsePayload(turnUser) && sheetContent !== turnUser) {
+      return true;
+    }
+    if (
+      isQuestionnairePlaceholderUserMessage(String(sheetUser.content ?? '')) &&
+      isQuestionnaireResponsePayload(turnUser) &&
+      sheetAgent !== turnUser
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function buildItemsFromTurn(turn: ConversationTurnRecord): unknown[] {
   const items: unknown[] = [];
   const userMessage = String(turn.userMessage ?? '').trim();
   if (userMessage) {
-    items.push({ type: 'message', role: 'user', content: userMessage });
+    items.push(buildUserMessageItem(userMessage));
   }
 
   const payload = isRecord(turn.responsePayload) ? turn.responsePayload : null;
@@ -134,8 +191,9 @@ export function repairSheetFromTurns(sheet: StoredSheet, turns: ConversationTurn
   const sheetItems = Array.isArray(sheet.items) ? sheet.items : [];
   const sheetUserCount = countUserMessages(sheetItems);
   const turnUserCount = chatTurns.filter((turn) => String(turn.userMessage ?? '').trim()).length;
+  const needsPlaceholderUpgrade = sheetHasDegradedQuestionnaireMessages(sheetItems, chatTurns);
 
-  if (turnUserCount <= sheetUserCount) return sheet;
+  if (turnUserCount <= sheetUserCount && !needsPlaceholderUpgrade) return sheet;
 
   const shellItems = extractLeadingShellItems(sheetItems);
   const rebuiltMessages = chatTurns.flatMap((turn) => buildItemsFromTurn(turn));

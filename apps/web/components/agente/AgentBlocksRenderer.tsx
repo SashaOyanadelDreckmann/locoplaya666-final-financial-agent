@@ -43,7 +43,7 @@ type AgentBlocksRendererProps = {
     questionnaireId: string;
     message: string;
     answers: Array<{ questionId: string; question: string; answer: string }>;
-  }) => void;
+  }) => boolean | Promise<boolean> | void;
 };
 
 type QuestionnaireQuestion = {
@@ -64,7 +64,11 @@ function QuestionnaireBlockView(props: {
     questions: QuestionnaireQuestion[];
   };
   chatTheme?: QuestionnaireChatTheme | null;
-  onSubmit?: AgentBlocksRendererProps['onQuestionnaireSubmit'];
+  onSubmit?: (payload: {
+    questionnaireId: string;
+    message: string;
+    answers: Array<{ questionId: string; question: string; answer: string }>;
+  }) => boolean | Promise<boolean> | void;
 }) {
   const { questionnaire, onSubmit, chatTheme = null } = props;
   const [selectedChoices, setSelectedChoices] = useState<Record<string, string>>({});
@@ -108,18 +112,24 @@ function QuestionnaireBlockView(props: {
   };
 
   const submit = () => {
-    if (submitted || !readyToSubmit) return;
+    if (submitted || !readyToSubmit || !onSubmit) return;
     const payloadAnswers = answers.map((a) => ({
       questionId: a.questionId,
       question: a.question,
       answer: a.answer,
     }));
-    onSubmit?.({
+    const result = onSubmit({
       questionnaireId: questionnaire.id,
       message: buildMessage(),
       answers: payloadAnswers,
     });
-    setSubmitted(true);
+    if (result instanceof Promise) {
+      void result.then((accepted) => {
+        if (accepted !== false) setSubmitted(true);
+      });
+      return;
+    }
+    if (result !== false) setSubmitted(true);
   };
 
   return (

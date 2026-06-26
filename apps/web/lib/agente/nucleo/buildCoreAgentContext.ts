@@ -1,4 +1,4 @@
-import { compactCoreAgentHistory, resolveCoreAgentHistoryLimits } from '@financial-agent/shared';
+import { compactCoreAgentHistory, resolveCoreAgentHistoryLimits, resolveUserMessageForAgentHistory } from '@financial-agent/shared';
 
 import type { SocialReflectionSession } from '@/lib/agente/nucleo/social-consciousness-reflections';
 
@@ -59,10 +59,19 @@ export function buildCoreAgentHistorySnapshot(items: ChatItem[], activeChatId?: 
         if (message.role === 'assistant' && isWelcomeShellMessageContent(content)) return false;
         return true;
       })
-      .map((item) => ({
-        role: (item as Extract<ChatItem, { type: 'message' }>).role,
-        content: (item as Extract<ChatItem, { type: 'message' }>).content,
-      })),
+      .map((item) => {
+        const message = item as Extract<ChatItem, { type: 'message' }>;
+        return {
+          role: message.role,
+          content:
+            message.role === 'user'
+              ? resolveUserMessageForAgentHistory({
+                  content: message.content,
+                  agent_content: message.agent_content,
+                })
+              : message.content,
+        };
+      }),
     {
       maxMessages: limits.maxMessages,
       maxCharsPerMessage: limits.maxCharsPerMessage,

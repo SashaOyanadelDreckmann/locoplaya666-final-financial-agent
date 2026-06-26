@@ -1,6 +1,6 @@
 'use client';
 
-import { type ChangeEvent, type KeyboardEvent, type PointerEvent, type Ref } from 'react';
+import { type ChangeEvent, type KeyboardEvent, type PointerEvent, type Ref, useCallback, useRef } from 'react';
 import { getFormatLabel, renderFormatIcon, buildUploadGuidance } from './presentation';
 import { TxParseProgress } from './TxParseProgress';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
@@ -10,6 +10,9 @@ import { TxChatMessageBubble } from './tx-chat-ui';
 import { readProductEvidenceFidelity } from '@/lib/compartido/evidence-fidelity.helpers';
 import { getEvidenceFileAccept } from '@/lib/compartido/evidence-format.helpers';
 import { shouldSurfaceTxFeedback } from './tx-feedback.helpers';
+import { revealTransactionsEvidenceContinueStep } from './tx-evidence-scroll.helpers';
+import { useNarrowViewport } from '@/lib/interfaz/use-section-scroll-progress';
+import { usePrefersReducedMotion } from './use-prefers-reduced-motion';
 import type { DocumentsParseProgress } from '@/lib/transacciones/progreso-parse.helpers';
 import type { BankProduct, TxAssistantMessage, TxUploadFormat } from './types';
 import { TX_MAX_TOTAL_FILE_BYTES } from './constants';
@@ -88,6 +91,9 @@ export interface TxEvidenceStepProps {
 
 export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const p = props;
+  const isMobileShell = useNarrowViewport();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const formatContinueAnchorRef = useRef<HTMLDivElement>(null);
   const messageCount = p.assistantMessages.length;
   const composerValue = p.txAssistantInput;
   const canAttach = !p.analysisAlreadyDone;
@@ -117,7 +123,18 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
     p.onPatchUploadFormat(value);
     p.onSetUploadOnboardingStep('details');
     p.onBumpTransitionPulse();
+    scheduleRevealFormatContinue();
   };
+
+  const scheduleRevealFormatContinue = useCallback(() => {
+    if (!isMobileShell) return;
+    const behavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        revealTransactionsEvidenceContinueStep(formatContinueAnchorRef.current, { behavior });
+      }, 120);
+    });
+  }, [isMobileShell, prefersReducedMotion]);
 
   const handleFormatPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType === 'mouse') return;
@@ -242,7 +259,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         )}
 
         {!p.analysisAlreadyDone && selectedUploadFormat && p.txUploadOnboardingStep !== 'format' && (
-          <>
+          <div className="tx-format-continue-block">
             <div className="tx-format-guidance" role="status">
               <div className="tx-format-guidance-copy">
                 <span className="tx-format-guidance-kicker">{getFormatLabel(selectedUploadFormat)}</span>
@@ -259,8 +276,13 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                 Cambiar
               </button>
             </div>
+            {isMobileShell ? (
+              <p className="tx-format-continue-cue" aria-live="polite">
+                Sigue abajo: adjunta tu archivo o pega el texto para continuar.
+              </p>
+            ) : null}
             {selectedUploadFormat === 'photos' ? <TxPhotoFormatExamplesPanel /> : null}
-          </>
+          </div>
         )}
 
         {(p.pendingEvidenceFiles.length > 0 || p.activeBankProduct.uploadedFiles.length > 0) && (
@@ -281,7 +303,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
           </div>
         )}
 
-        <div className="tx-composer-sticky-host">
+        <div ref={formatContinueAnchorRef} className="tx-composer-sticky-host">
           {showUploadComposer ? (
             <>
               <div className="tx-composer-pro" data-analysis-done="false">

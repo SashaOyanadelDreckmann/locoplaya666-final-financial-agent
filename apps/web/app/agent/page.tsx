@@ -6,6 +6,11 @@ import { Send } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 
 import {
+  AgentComposerSuggestedReplies,
+  resolveActiveComposerSuggestedReplies,
+} from '@/components/agente/AgentComposerSuggestedReplies';
+
+import {
   clearComposerTypingVisual,
   focusMobileInput,
   restoreAgentShellViewport,
@@ -580,6 +585,10 @@ export default function AgentPage() {
   );
 
   const items = activeThread?.items ?? [];
+  const activeComposerSuggestions = useMemo(
+    () => resolveActiveComposerSuggestedReplies(items),
+    [items],
+  );
   const threadScrollAnchor = useMemo(() => {
     const last = items[items.length - 1];
     if (last?.type === 'message' && last.role === 'assistant' && last.stream) {
@@ -3710,6 +3719,15 @@ export default function AgentPage() {
 
   const terminalComposerShell = (
     <div className="agent-composer-stack">
+      {activeComposerSuggestions.length > 0 ? (
+        <AgentComposerSuggestedReplies
+          suggestions={activeComposerSuggestions}
+          disabled={isActiveChatLocked || isActiveChatClosed || fincoinSpendBlocked || loading}
+          onSelect={(message) => {
+            void onSend(message);
+          }}
+        />
+      ) : null}
       {hasBudgetTablePending && budgetTablePending && !isBudgetModalOpen ? (
         <BudgetPendingConfirmBanner
           pending={budgetTablePending}

@@ -311,9 +311,21 @@ export function sanitizeChatItems(items: ChatItem[]): ChatItem[] {
       }
       const content = sanitizeMessageText(item.content, item.role === 'assistant' ? '—' : '');
       if (!content && item.role !== 'assistant') return null;
-      if (item.role === 'assistant' && item.suggested_replies?.length) {
-        const { suggested_replies: _removed, ...rest } = item;
-        return { ...rest, content };
+      if (item.role === 'user') {
+        const agentContent =
+          typeof item.agent_content === 'string' ? item.agent_content.trim() : '';
+        return agentContent ? { ...item, content, agent_content: agentContent } : { ...item, content };
+      }
+      if (item.role === 'assistant' && Array.isArray(item.suggested_replies)) {
+        const normalizedSuggestions = item.suggested_replies
+          .map((entry) => String(entry ?? '').trim())
+          .filter(Boolean)
+          .slice(0, 4);
+        return {
+          ...item,
+          content,
+          ...(normalizedSuggestions.length > 0 ? { suggested_replies: normalizedSuggestions } : {}),
+        };
       }
       return { ...item, content };
     })
