@@ -37,16 +37,17 @@ pnpm --filter @financial-agent/api typecheck
 echo "==> Limpiando cache local innecesario"
 rm -rf apps/web/.next apps/api/.next
 
-echo "==> Migraciones"
-DATABASE_URL="$("$RAILWAY_BIN" variable list --project "$PROJECT" --environment "$ENVIRONMENT" --service Postgres --json | jq -r '.DATABASE_PUBLIC_URL // empty')" \
-  pnpm --filter @financial-agent/api db:migrate
-
-echo "==> Verificar migraciones aplicadas"
-DATABASE_URL="$("$RAILWAY_BIN" variable list --project "$PROJECT" --environment "$ENVIRONMENT" --service Postgres --json | jq -r '.DATABASE_PUBLIC_URL // empty')" \
-  pnpm --filter @financial-agent/api exec prisma migrate status
-
 echo "==> Link Railway"
 "$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$SERVICE"
+
+echo "==> Migraciones (best effort)"
+DB_URL="$("$RAILWAY_BIN" variable list --project "$PROJECT" --environment "$ENVIRONMENT" --service Postgres --json 2>/dev/null | jq -r '.DATABASE_PUBLIC_URL // empty' || true)"
+if [ -n "$DB_URL" ]; then
+  DATABASE_URL="$DB_URL" pnpm --filter @financial-agent/api db:migrate
+  DATABASE_URL="$DB_URL" pnpm --filter @financial-agent/api exec prisma migrate status
+else
+  echo "WARN: skip db:migrate — DATABASE_URL no disponible desde Railway CLI"
+fi
 
 API_SERVICE_NAME="${RAILWAY_API_SERVICE_NAME:-locoplaya666-final-financial-agent}"
 if [ -n "${RAILWAY_API_TOKEN:-${RAILWAY_TOKEN:-}}" ]; then
