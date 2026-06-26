@@ -1,6 +1,6 @@
 import {
   compactCoreAgentHistory,
-  mergeAgentConversationHistory,
+  resolveAuthoritativeAgentHistory,
   resolveCoreAgentHistoryLimits,
   resolveUserMessageForAgentHistory,
 } from '@financial-agent/shared';
@@ -71,5 +71,5 @@ export async function resolveAgentConversationHistory(params: {
     fromStorage = compactCoreAgentHistory(extractChatHistoryFromSheet(sheet), compactOpts);
   }
 
-  return mergeAgentConversationHistory(fromClient, fromStorage);
+  return resolveAuthoritativeAgentHistory(fromClient, fromStorage, turns.length > 0);
 }

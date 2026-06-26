@@ -25,6 +25,30 @@ describe('conversation-history.helpers', () => {
     ]);
   });
 
+  it('extractChatHistoryFromSheet uses agent_content for questionnaire placeholders', () => {
+    const history = extractChatHistoryFromSheet({
+      id: 'chat-1',
+      label: '1',
+      name: 'Diagnóstico financiero',
+      autoNamed: false,
+      items: [
+        {
+          type: 'message',
+          role: 'user',
+          content: 'Completé el formulario',
+          agent_content: 'Formulario respondido. id=q1 respuestas=q1=Priorizar deuda',
+        },
+        { type: 'message', role: 'assistant', content: 'Gracias' },
+      ],
+      draft: '',
+      status: 'active',
+      userMessageCount: 1,
+      createdAt: '2026-06-18T00:00:00.000Z',
+    });
+
+    expect(history[0]?.content).toContain('Formulario respondido.');
+  });
+
   it('extractChatHistoryFromSheet drops empty assistant shells', () => {
     const history = extractChatHistoryFromSheet({
       id: 'chat-1',

@@ -34,7 +34,7 @@ import {
   listConversationTurnsSafe,
   upsertConversationTurnRecord,
 } from '../persistencia/repos';
-import type { StoredPanelState } from '../persistencia/types';
+import type { StoredPanelState, StoredSheet } from '../persistencia/types';
 import { resolveAgentConversationHistory } from '../agents/core.agent/helpers/conversation-history.helpers';
 import { complete, runWithLLMCostTracking } from '../services/llm.service';
 import {
@@ -997,7 +997,12 @@ router.post(
     if (!user) throw unauthorized('Not authenticated');
 
     const { sheets } = parseBody(SaveSheetsSchema, req.body);
-    const ok = await saveUserSheets(user.id, sheets);
+    const turns = await listConversationTurnsSafe({ userId: user.id, limit: 200 });
+    const { sheets: repairedSheets } = repairUserSheetsFromTurns(
+      sheets as StoredSheet[] | null | undefined,
+      turns,
+    );
+    const ok = await saveUserSheets(user.id, repairedSheets);
     return sendSuccess(res, { saved: ok });
   }),
 );

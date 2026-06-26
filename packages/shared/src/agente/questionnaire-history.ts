@@ -118,3 +118,21 @@ export function mergeAgentConversationHistory(
 
   return merged;
 }
+
+/** Cuando hay turnos persistidos, prioriza DB y solo usa el cliente para cola in-flight. */
+export function resolveAuthoritativeAgentHistory(
+  fromClient: AgentHistoryEntry[],
+  fromStorage: AgentHistoryEntry[],
+  hasPersistedTurns: boolean,
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+  if (!hasPersistedTurns || fromStorage.length === 0) {
+    return mergeAgentConversationHistory(fromClient, fromStorage);
+  }
+  if (fromClient.length === 0 || fromStorage.length > fromClient.length) {
+    return fromStorage.map((entry) => ({
+      role: normalizeHistoryRole(entry.role),
+      content: entry.content,
+    }));
+  }
+  return mergeAgentConversationHistory(fromClient, fromStorage);
+}

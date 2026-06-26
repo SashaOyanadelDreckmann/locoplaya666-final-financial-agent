@@ -5,6 +5,7 @@ import {
   isQuestionnaireResponsePayload,
   mergeAgentConversationHistory,
   QUESTIONNAIRE_PLACEHOLDER_USER_MESSAGE,
+  resolveAuthoritativeAgentHistory,
   resolveUserMessageForAgentHistory,
 } from '../../agente/questionnaire-history';
 
@@ -41,15 +42,17 @@ describe('questionnaire-history', () => {
     expect(merged[1]?.content).toBe('Gracias');
   });
 
-  it('prefers longer storage history when client is shorter', () => {
-    const merged = mergeAgentConversationHistory(
-      [{ role: 'user', content: 'Hola' }],
+  it('prefers persisted turns when client history is shorter', () => {
+    const resolved = resolveAuthoritativeAgentHistory(
+      [{ role: 'user', content: QUESTIONNAIRE_PLACEHOLDER_USER_MESSAGE }],
       [
-        { role: 'user', content: 'Hola' },
-        { role: 'assistant', content: 'Bienvenido' },
+        { role: 'user', content: 'Formulario respondido. id=q1 respuestas=q1=Si' },
+        { role: 'assistant', content: 'Listo' },
       ],
+      true,
     );
 
-    expect(merged).toHaveLength(2);
+    expect(resolved[0]?.content).toContain('Formulario respondido.');
+    expect(resolved[1]?.content).toBe('Listo');
   });
 });
